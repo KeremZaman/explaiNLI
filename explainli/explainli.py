@@ -167,7 +167,7 @@ class NLIAttribution(object):
         attributions = self.attr_method.attribute(inputs, additional_forward_args=additional_args, **kwargs)
         attributions = self.aggregation_func(attributions)
 
-        label_names = ['contradiction', 'neutral', 'entailment']
+        label_names = ['entailment', 'neutral', 'contradiction']
         indices_list = [input_ids.detach().tolist() for input_ids in encoded_inputs['input_ids']]
         tokens_list = [self.tokenizer.convert_ids_to_tokens(indices) for indices in indices_list]
         attribution_list = attributions.detach().tolist()
