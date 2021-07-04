@@ -132,11 +132,12 @@ class NLIAttribution(object):
 
         return pred
 
-    def attr(self, inputs: List[str], labels: List[int], **kwargs) -> torch.Tensor:
+    def attr(self, inputs: List[str], labels: List[int], return_abs: Optional[bool]=False, **kwargs) -> torch.Tensor:
         """
         Calculate attributions, postprocess, save and return raw attributions
         :param inputs:
         :param labels:
+        :param return_abs: if set True, return absolute value of aggregated attributions
         :param kwargs:
         :return:
         """
@@ -167,6 +168,7 @@ class NLIAttribution(object):
         self.wrapper.zero_grad()
         attributions = self.attr_method.attribute(inputs, additional_forward_args=additional_args, **kwargs)
         attributions = self.aggregation_func(attributions)
+        attributions = torch.abs(attributions) if return_abs else attributions
 
         indices_list = [input_ids.detach().tolist() for input_ids in encoded_inputs['input_ids']]
         tokens_list = [self.tokenizer.convert_ids_to_tokens(indices) for indices in indices_list]
