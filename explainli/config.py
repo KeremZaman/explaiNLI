@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 
 
 class AggregationMethods(Enum):
@@ -31,7 +31,7 @@ class AttributionConfig(object):
     def __init__(self, attribution_method: AttributionMethods, remove_pad_tokens: bool, remove_sep_tokens: bool,
                  remove_cls_token: bool, join_subwords: bool,
                  aggregation_method: AggregationMethods, forward_scoring: ForwardScoringOptions, normalize_scores: bool,
-                 prediction_class_idx: Optional[int]=None):
+                 prediction_class_idx: Optional[int]=None, label_names: Optional[List[str]]=None):
         """
         Common configuration for all the attribution methods supported
         :param attribution_method:
@@ -44,7 +44,10 @@ class AttributionConfig(object):
         :param forward_scoring: the value to be returned by model's forward to calculate attributions wrt loss,
          top predicted class or any arbitrary class
         :param normalize_scores:
-        :param prediction_class_idx: if forward scoring selected as PREDICTION_CLASS, prediction class index must be given
+        :param prediction_class_idx: if forward scoring selected as PREDICTION_CLASS, prediction class index
+        must be given
+        :param label_names: label names which are given in the order they get their indices, use this to name indices
+        explicitly
         """
         self.attribution_method = attribution_method
         self.remove_pad_tokens = remove_pad_tokens
@@ -55,3 +58,4 @@ class AttributionConfig(object):
         self.forward_scoring = forward_scoring
         self.normalize_scores = normalize_scores
         self.prediction_class_idx = prediction_class_idx
+        self.label_names = label_names if label_names is not None else ['contradiction', 'neutral', 'entailment']

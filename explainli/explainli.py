@@ -56,6 +56,7 @@ class NLIAttribution(object):
         self.aggregation_func = self.aggregation_funcs[config.aggregation_method]
 
         self.config = config
+        self.label_names = self.config.label_names
 
         if self._is_input_attribution():
             self.attr_method = ATTRIBUTION_METHOD_MAP.get(self.config.attribution_method)(self.wrapper, **kwargs)
@@ -167,7 +168,6 @@ class NLIAttribution(object):
         attributions = self.attr_method.attribute(inputs, additional_forward_args=additional_args, **kwargs)
         attributions = self.aggregation_func(attributions)
 
-        label_names = ['contradiction', 'neutral', 'entailment']
         indices_list = [input_ids.detach().tolist() for input_ids in encoded_inputs['input_ids']]
         tokens_list = [self.tokenizer.convert_ids_to_tokens(indices) for indices in indices_list]
         attribution_list = attributions.detach().tolist()
@@ -221,9 +221,9 @@ class NLIAttribution(object):
             record = viz.VisualizationDataRecord(
                 attribution_item,
                 max(pred),
-                label_names[pred.index(max(pred))],
-                label_names[label],
-                str(label_names[label]),
+                self.label_names[pred.index(max(pred))],
+                self.label_names[label],
+                str(self.label_names[label]),
                 sum(attribution_item),
                 tokens, 0.0)
 
