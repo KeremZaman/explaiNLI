@@ -272,4 +272,4 @@ class NLIAttribution(object):
             elif self.config.forward_scoring is ForwardScoringOptions.TOP_PREDICTION:
                 return pred['logits'].max(1).values
             elif self.config.forward_scoring is ForwardScoringOptions.PREDICTION_CLASS:
-                return pred['logits'][self.config.prediction_class_idx]
+                return pred['logits'][:, self.config.prediction_class_idx]
