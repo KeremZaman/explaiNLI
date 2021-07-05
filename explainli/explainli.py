@@ -132,7 +132,7 @@ class NLIAttribution(object):
 
         return pred
 
-    def attr(self, inputs: List[str], labels: List[int], return_abs: Optional[bool]=False, **kwargs) -> torch.Tensor:
+    def attr(self, inputs: List[Tuple[str, str]], labels: List[int], return_abs: Optional[bool]=False, **kwargs) -> torch.Tensor:
         """
         Calculate attributions, postprocess, save and return raw attributions
         :param inputs:
