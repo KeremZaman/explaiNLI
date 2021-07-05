@@ -1,0 +1,332 @@
+import unittest
+from explainli.config import AttributionMethods, AttributionConfig, AggregationMethods, ForwardScoringOptions
+from explainli.explainli import NLIAttribution
+import numpy as np
+
+
+class AttributionTestBase(unittest.TestCase):
+    def __init__(self, method, scoring, **kwargs):
+        super().__init__()
+        self.method = method
+        self.scoring = scoring
+        self.model_name = 'textattack/bert-base-uncased-snli'
+        self.kwargs = kwargs
+
+        self.attr_config = AttributionConfig(self.method, remove_pad_tokens=False,
+                                             remove_cls_token=False, remove_sep_tokens=False, join_subwords=False,
+                                             normalize_scores=False,
+                                             forward_scoring=self.scoring,
+                                             aggregation_method=AggregationMethods.MEAN)
+
+    def setUp(self):
+        self.attribution = NLIAttribution(model_name=self.model_name, config=self.attr_config, **self.kwargs)
+
+    def _test_batch_versus_single_scores(self, **kwargs):
+        """
+        Test whether attribution calculations are same when they are calculated together inside a batch and separately
+         with consecutive calls
+        :param kwargs:
+        :return:
+        """
+        inputs = [("A man inspects the uniform of a figure in some East Asian country.", "The man is sleeping"),
+                       ("A soccer game with multiple males playing.", "Some men are playing a sport."),
+                       ("A black race car starts up in front of a crowd of people.",
+                        "A man is driving down a lonely road."),
+                       ("A smiling costumed woman is holding an umbrella.",
+                        "A happy woman in a fairy costume holds an umbrella.")]
+        labels = [2, 0, 2, 1]
+
+        attribution_single = NLIAttribution(model_name=self.model_name, config=self.attr_config)
+
+        for pair, label in zip(inputs, labels):
+            attribution_single.attr([pair], [label])
+
+        self.attribution.attr(inputs, labels, **kwargs)
+
+        single_scores = np.array([record.attr_score for record in attribution_single.records])
+        batch_scores = np.array([record.attr_score for record in self.attribution.records])
+
+        self.assertTrue(np.allclose(single_scores, batch_scores))
+
+    def _test_consistency_inside_batch(self, **kwargs):
+        """
+        Test whether methods give same scores to same examples inside the same batch
+        :param kwargs:
+        :return:
+        """
+        inputs = [("A man inspects the uniform of a figure in some East Asian country.", "The man is sleeping"),
+                  ("A soccer game with multiple males playing.", "Some men are playing a sport."),
+                  ("A black race car starts up in front of a crowd of people.", "A man is driving down a lonely road."),
+                  ("A smiling costumed woman is holding an umbrella.", "A happy woman in a fairy costume holds an umbrella."),
+                  ("A soccer game with multiple males playing.", "Some men are playing a sport."),
+                  ("A man inspects the uniform of a figure in some East Asian country.", "The man is sleeping"),
+                  ("A smiling costumed woman is holding an umbrella.", "A happy woman in a fairy costume holds an umbrella."),
+                  ("A black race car starts up in front of a crowd of people.", "A man is driving down a lonely road.")]
+        labels = [2, 0, 2, 1, 0, 2, 1, 2]
+
+        self.attribution.attr(inputs, labels, **kwargs)
+        scores = np.array([record.attr_score for record in self.attribution.records])
+
+        self.assertTrue(np.allclose(scores[0, 0], scores[0, 5]))
+        self.assertTrue(np.allclose(scores[0, 1], scores[0, 4]))
+        self.assertTrue(np.allclose(scores[0, 2], scores[0, 7]))
+        self.assertTrue(np.allclose(scores[0, 3], scores[0, 6]))
+
+    def _test_consistency_across_time(self, **kwargs):
+        """
+        Test whether methods give the same scores after a number of repetitions. This test mainly aims to check gradient
+        accumulation.
+        :param kwargs:
+        :return:
+        """
+        inputs = [("A man inspects the uniform of a figure in some East Asian country.", "The man is sleeping"),
+                  ("A soccer game with multiple males playing.", "Some men are playing a sport."),
+                  ("A black race car starts up in front of a crowd of people.", "A man is driving down a lonely road."),
+                  ("A smiling costumed woman is holding an umbrella.", "A happy woman in a fairy costume holds an umbrella.")]
+        labels = [2, 0, 2, 1]
+
+        scores_step_01, scores_step_05, scores_step_25, scores_step_50, scores_step_100 = None, None, None, None, None
+
+        for i in range(1, 101):
+            self.attribution.attr(inputs, labels, **kwargs)
+            scores = np.array([record.attr_score for record in self.attribution.records])
+
+            if i == 1:
+                scores_step_01 = scores
+            elif i == 5:
+                scores_step_05 = scores
+            elif i == 25:
+                scores_step_25 = scores
+            elif i == 50:
+                scores_step_50 = scores
+            elif i == 100:
+                scores_step_100 = scores
+
+        self.assertTrue(np.allclose(scores_step_01, scores_step_05))
+        self.assertTrue(np.allclose(scores_step_05, scores_step_25))
+        self.assertTrue(np.allclose(scores_step_25, scores_step_50))
+        self.assertTrue(np.allclose(scores_step_50, scores_step_100))
+
+
+class InputXGradientWrtTopPredictionAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.InputXGradient, ForwardScoringOptions.TOP_PREDICTION)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class InputXGradientWrtLossAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.InputXGradient, ForwardScoringOptions.LOSS)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class SaliencyWrtTopPredictionAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.Saliency, ForwardScoringOptions.TOP_PREDICTION)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class SaliencyWrtLossAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.Saliency, ForwardScoringOptions.LOSS)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class ActivationWrtTopPredictionAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.Activation, ForwardScoringOptions.TOP_PREDICTION)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class ActivationWrtLossAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.Activation, ForwardScoringOptions.LOSS)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class DeepLiftWrtTopPredictionAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.DeepLift, ForwardScoringOptions.TOP_PREDICTION)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class DeepLiftWrtLossAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.DeepLift, ForwardScoringOptions.LOSS)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class GuidedBackpropWrtTopPredictionAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.GuidedBackprop, ForwardScoringOptions.TOP_PREDICTION)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class GuidedBackpropWrtLossAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.GuidedBackprop, ForwardScoringOptions.LOSS)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class OcclusionWrtTopPredictionAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.Occlusion, ForwardScoringOptions.TOP_PREDICTION)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class OcclusionWrtLossAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.Occlusion, ForwardScoringOptions.LOSS)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class ShapleyWrtTopPredictionAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.Shapley, ForwardScoringOptions.TOP_PREDICTION)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class ShapleyWrtLossAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.Shapley, ForwardScoringOptions.LOSS)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class IGWrtTopPredictionAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.IntegratedGradients, ForwardScoringOptions.TOP_PREDICTION)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
+
+
+class IGWrtLossAttributionTest(AttributionTestBase):
+    def __init__(self):
+        super().__init__(AttributionMethods.IntegratedGradients, ForwardScoringOptions.LOSS)
+
+    def test_batch_versus_single_scores(self):
+        self._test_batch_versus_single_scores()
+
+    def test_consistency_inside_batch(self):
+        self._test_consistency_inside_batch()
+
+    def test_consistency_across_time(self):
+        self._test_consistency_across_time()
