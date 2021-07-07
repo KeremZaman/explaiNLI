@@ -257,13 +257,13 @@ class OcclusionWrtTopPredictionAttributionTest(AttributionTestBase):
         super().__init__(AttributionMethods.Occlusion, ForwardScoringOptions.TOP_PREDICTION, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
-        self._test_batch_versus_single_scores()
+        self._test_batch_versus_single_scores(sliding_window_shapes=(1, 768))
 
     def test_consistency_inside_batch(self):
-        self._test_consistency_inside_batch()
+        self._test_consistency_inside_batch(sliding_window_shapes=(1, 768))
 
     def test_consistency_across_time(self):
-        self._test_consistency_across_time()
+        self._test_consistency_across_time(sliding_window_shapes=(1, 768))
 
 
 class OcclusionWrtLossAttributionTest(AttributionTestBase):
@@ -271,13 +271,13 @@ class OcclusionWrtLossAttributionTest(AttributionTestBase):
         super().__init__(AttributionMethods.Occlusion, ForwardScoringOptions.LOSS, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
-        self._test_batch_versus_single_scores()
+        self._test_batch_versus_single_scores(sliding_window_shapes=(1, 768))
 
     def test_consistency_inside_batch(self):
-        self._test_consistency_inside_batch()
+        self._test_consistency_inside_batch(sliding_window_shapes=(1, 768))
 
     def test_consistency_across_time(self):
-        self._test_consistency_across_time()
+        self._test_consistency_across_time(sliding_window_shapes=(1, 768))
 
 
 class ShapleyWrtTopPredictionAttributionTest(AttributionTestBase):
