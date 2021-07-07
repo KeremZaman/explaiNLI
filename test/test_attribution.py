@@ -85,28 +85,31 @@ class AttributionTestBase(unittest.TestCase):
                   ("A black race car starts up in front of a crowd of people.", "A man is driving down a lonely road."),
                   ("A smiling costumed woman is holding an umbrella.", "A happy woman in a fairy costume holds an umbrella.")]
         labels = [2, 0, 2, 1]
+        n = len(inputs)
 
-        scores_step_01, scores_step_05, scores_step_25, scores_step_50, scores_step_100 = None, None, None, None, None
+        scores_step_01, scores_step_05, scores_step_10, scores_step_25 = None, None, None, None
 
-        for i in range(1, 101):
+        for i in range(1, 26):
             self.attribution.attr(inputs, labels, **kwargs)
-            scores = np.array([record.attr_score for record in self.attribution.records])
+
+            scores = np.zeros((n,
+                               max([len(record.word_attributions) for record in self.attribution.records[-n:]])),
+                              dtype=np.float)
+            for j, record in enumerate(self.attribution.records[-n:]):
+                scores[j, :len(record.word_attributions)] = record.word_attributions[:]
 
             if i == 1:
-                scores_step_01 = scores
+                scores_step_01 = scores[:]
             elif i == 5:
-                scores_step_05 = scores
+                scores_step_05 = scores[:]
+            elif i == 10:
+                scores_step_10 = scores[:]
             elif i == 25:
-                scores_step_25 = scores
-            elif i == 50:
-                scores_step_50 = scores
-            elif i == 100:
-                scores_step_100 = scores
+                scores_step_25 = scores[:]
 
         self.assertTrue(np.allclose(scores_step_01, scores_step_05))
-        self.assertTrue(np.allclose(scores_step_05, scores_step_25))
-        self.assertTrue(np.allclose(scores_step_25, scores_step_50))
-        self.assertTrue(np.allclose(scores_step_50, scores_step_100))
+        self.assertTrue(np.allclose(scores_step_05, scores_step_10))
+        self.assertTrue(np.allclose(scores_step_10, scores_step_25))
 
 
 class InputXGradientWrtTopPredictionAttributionTest(AttributionTestBase):
