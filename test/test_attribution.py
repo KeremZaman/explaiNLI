@@ -63,12 +63,15 @@ class AttributionTestBase(unittest.TestCase):
         labels = [2, 0, 2, 1, 0, 2, 1, 2]
 
         self.attribution.attr(inputs, labels, **kwargs)
-        scores = np.array([record.attr_score for record in self.attribution.records])
 
-        self.assertTrue(np.allclose(scores[0, 0], scores[0, 5]))
-        self.assertTrue(np.allclose(scores[0, 1], scores[0, 4]))
-        self.assertTrue(np.allclose(scores[0, 2], scores[0, 7]))
-        self.assertTrue(np.allclose(scores[0, 3], scores[0, 6]))
+        scores = np.zeros((len(self.attribution.records), max([len(record.word_attributions) for record in self.attribution.records])), dtype=np.float)
+        for i, record in enumerate(self.attribution.records):
+            scores[i, :len(record.word_attributions)] = record.word_attributions
+
+        self.assertTrue(np.allclose(scores[0, :], scores[5, :], atol=1e-5))
+        self.assertTrue(np.allclose(scores[1, :], scores[4, :], atol=1e-5))
+        self.assertTrue(np.allclose(scores[2, :], scores[7, :], atol=1e-5))
+        self.assertTrue(np.allclose(scores[3, :], scores[6, :], atol=1e-5))
 
     def _test_consistency_across_time(self, **kwargs):
         """
