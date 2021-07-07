@@ -104,9 +104,9 @@ class NLIAttribution(object):
         sep_token_id = self.tokenizer.sep_token_id
 
         ref_input_ids = torch.where((input_ids == cls_token_id) | (input_ids == sep_token_id), input_ids, 0)
-        ref_attn_mask = torch.ones_like(input_ids)
-        ref_token_type_ids = torch.zeros_like(input_ids)
-        ref_position_ids = torch.zeros_like(input_ids)
+        ref_attn_mask = torch.ones_like(input_ids, device=self.device)
+        ref_token_type_ids = torch.zeros_like(input_ids, device=self.device)
+        ref_position_ids = torch.zeros_like(input_ids, device=self.device)
 
         return ref_input_ids, ref_attn_mask, ref_token_type_ids, ref_position_ids
 
@@ -124,7 +124,7 @@ class NLIAttribution(object):
         :param output_hidden_states:
         :return:
         """
-        labels = torch.LongTensor(labels, device=self.device)
+        labels = torch.LongTensor(labels).to(self.device)
         self.wrapper.zero_grad()
         pred = self.wrapper.model(input_ids, token_type_ids=token_type_ids, position_ids=position_ids,
                                   attention_mask=attention_mask, labels=labels,
@@ -142,11 +142,14 @@ class NLIAttribution(object):
         :return:
         """
         encoded_inputs = self.tokenizer(inputs, return_tensors='pt', padding=True)
+        input_ids = encoded_inputs['input_ids'].to(self.device)
+        attn_mask = encoded_inputs['attention_mask'].to(self.device)
+        token_type_ids = encoded_inputs['token_type_ids'].to(self.device)
 
         # construct baseline input if the selected attribution method requires
         if self._is_baseline_required():
             ref_input_ids, ref_attn_mask, ref_token_type_ids, ref_position_ids = self._construct_baseline_input(
-                encoded_inputs['input_ids'])
+                input_ids)
 
             # hide baseline input into attribute function to be able use it in a generalized way
             self.attr_method.attribute = partial(self.attr_method.attribute, baselines=ref_input_ids)
@@ -154,29 +157,28 @@ class NLIAttribution(object):
         # if select method is implemented as input attribution, make model use input embeddings as input
         if self._is_input_attribution():
             # first element of hidden states is input embeddings
-            inputs_embeds = self._nli_forward_plain(input_ids=encoded_inputs['input_ids'], labels=labels,
-                                                    token_type_ids=encoded_inputs['token_type_ids'],
-                                                    attention_mask=encoded_inputs['attention_mask'],
+            inputs_embeds = self._nli_forward_plain(input_ids=input_ids, labels=labels,
+                                                    token_type_ids=token_type_ids,
+                                                    attention_mask=attn_mask,
                                                     output_hidden_states=True).hidden_states[0]
             # set use_embeds_as_inputs True
-            additional_args = (labels, encoded_inputs['token_type_ids'], None, encoded_inputs['attention_mask'], True)
+            additional_args = (labels, input_ids, None, attn_mask, True)
             inputs = inputs_embeds
         else:
-            additional_args = (labels, encoded_inputs['token_type_ids'], None, encoded_inputs['attention_mask'], False)
-            inputs = encoded_inputs['input_ids']
+            additional_args = (labels, token_type_ids, None, attn_mask, False)
+            inputs = input_ids
 
         self.wrapper.zero_grad()
         attributions = self.attr_method.attribute(inputs, additional_forward_args=additional_args, **kwargs)
         attributions = self.aggregation_func(attributions)
         attributions = torch.abs(attributions) if return_abs else attributions
 
-        indices_list = [input_ids.detach().tolist() for input_ids in encoded_inputs['input_ids']]
+        indices_list = [seq.detach().tolist() for seq in input_ids]
         tokens_list = [self.tokenizer.convert_ids_to_tokens(indices) for indices in indices_list]
         attribution_list = attributions.detach().tolist()
 
         # get predictions separately to get prediction scores and predicted labels
-        pred = self._nli_forward_plain(encoded_inputs['input_ids'], labels, encoded_inputs['token_type_ids'], None,
-                                       encoded_inputs['attention_mask'])
+        pred = self._nli_forward_plain(input_ids, labels, token_type_ids, None, attn_mask)
         pred_list = torch.softmax(pred['logits'], dim=-1).detach().tolist()[-len(labels):]
 
         for tokens, attribution_item, pred, label in zip(tokens_list, attribution_list, pred_list, labels):
@@ -255,7 +257,7 @@ class NLIAttribution(object):
 
         def forward(self, inputs, labels=None, token_type_ids=None, position_ids=None, attention_mask=None,
                     use_embeds_as_input=False):
-            labels = torch.LongTensor(labels, device=self.device)
+            labels = torch.LongTensor(labels).to(self.device)
 
             # in case of batching multiple steps (e.g integrated gradients)
             if labels.shape != inputs.shape:
