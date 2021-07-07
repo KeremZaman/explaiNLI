@@ -5,8 +5,8 @@ import numpy as np
 
 
 class AttributionTestBase(unittest.TestCase):
-    def __init__(self, method, scoring, **kwargs):
-        super().__init__()
+    def __init__(self, method, scoring, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.method = method
         self.scoring = scoring
         self.model_name = 'textattack/bert-base-uncased-snli'
@@ -109,8 +109,8 @@ class AttributionTestBase(unittest.TestCase):
 
 
 class InputXGradientWrtTopPredictionAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.InputXGradient, ForwardScoringOptions.TOP_PREDICTION)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.InputXGradient, ForwardScoringOptions.TOP_PREDICTION, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -123,8 +123,8 @@ class InputXGradientWrtTopPredictionAttributionTest(AttributionTestBase):
 
 
 class InputXGradientWrtLossAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.InputXGradient, ForwardScoringOptions.LOSS)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.InputXGradient, ForwardScoringOptions.LOSS, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -137,8 +137,8 @@ class InputXGradientWrtLossAttributionTest(AttributionTestBase):
 
 
 class SaliencyWrtTopPredictionAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.Saliency, ForwardScoringOptions.TOP_PREDICTION)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.Saliency, ForwardScoringOptions.TOP_PREDICTION, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -151,8 +151,8 @@ class SaliencyWrtTopPredictionAttributionTest(AttributionTestBase):
 
 
 class SaliencyWrtLossAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.Saliency, ForwardScoringOptions.LOSS)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.Saliency, ForwardScoringOptions.LOSS, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -165,8 +165,8 @@ class SaliencyWrtLossAttributionTest(AttributionTestBase):
 
 
 class ActivationWrtTopPredictionAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.Activation, ForwardScoringOptions.TOP_PREDICTION)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.Activation, ForwardScoringOptions.TOP_PREDICTION, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -179,8 +179,8 @@ class ActivationWrtTopPredictionAttributionTest(AttributionTestBase):
 
 
 class ActivationWrtLossAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.Activation, ForwardScoringOptions.LOSS)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.Activation, ForwardScoringOptions.LOSS, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -193,8 +193,8 @@ class ActivationWrtLossAttributionTest(AttributionTestBase):
 
 
 class DeepLiftWrtTopPredictionAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.DeepLift, ForwardScoringOptions.TOP_PREDICTION)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.DeepLift, ForwardScoringOptions.TOP_PREDICTION, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -207,8 +207,8 @@ class DeepLiftWrtTopPredictionAttributionTest(AttributionTestBase):
 
 
 class DeepLiftWrtLossAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.DeepLift, ForwardScoringOptions.LOSS)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.DeepLift, ForwardScoringOptions.LOSS, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -221,8 +221,8 @@ class DeepLiftWrtLossAttributionTest(AttributionTestBase):
 
 
 class GuidedBackpropWrtTopPredictionAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.GuidedBackprop, ForwardScoringOptions.TOP_PREDICTION)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.GuidedBackprop, ForwardScoringOptions.TOP_PREDICTION, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -235,8 +235,8 @@ class GuidedBackpropWrtTopPredictionAttributionTest(AttributionTestBase):
 
 
 class GuidedBackpropWrtLossAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.GuidedBackprop, ForwardScoringOptions.LOSS)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.GuidedBackprop, ForwardScoringOptions.LOSS, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -249,8 +249,8 @@ class GuidedBackpropWrtLossAttributionTest(AttributionTestBase):
 
 
 class OcclusionWrtTopPredictionAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.Occlusion, ForwardScoringOptions.TOP_PREDICTION)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.Occlusion, ForwardScoringOptions.TOP_PREDICTION, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -263,8 +263,8 @@ class OcclusionWrtTopPredictionAttributionTest(AttributionTestBase):
 
 
 class OcclusionWrtLossAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.Occlusion, ForwardScoringOptions.LOSS)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.Occlusion, ForwardScoringOptions.LOSS, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -277,8 +277,8 @@ class OcclusionWrtLossAttributionTest(AttributionTestBase):
 
 
 class ShapleyWrtTopPredictionAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.Shapley, ForwardScoringOptions.TOP_PREDICTION)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.Shapley, ForwardScoringOptions.TOP_PREDICTION, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -291,8 +291,8 @@ class ShapleyWrtTopPredictionAttributionTest(AttributionTestBase):
 
 
 class ShapleyWrtLossAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.Shapley, ForwardScoringOptions.LOSS)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.Shapley, ForwardScoringOptions.LOSS, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -305,8 +305,8 @@ class ShapleyWrtLossAttributionTest(AttributionTestBase):
 
 
 class IGWrtTopPredictionAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.IntegratedGradients, ForwardScoringOptions.TOP_PREDICTION)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.IntegratedGradients, ForwardScoringOptions.TOP_PREDICTION, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
@@ -319,8 +319,8 @@ class IGWrtTopPredictionAttributionTest(AttributionTestBase):
 
 
 class IGWrtLossAttributionTest(AttributionTestBase):
-    def __init__(self):
-        super().__init__(AttributionMethods.IntegratedGradients, ForwardScoringOptions.LOSS)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.IntegratedGradients, ForwardScoringOptions.LOSS, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
         self._test_batch_versus_single_scores()
