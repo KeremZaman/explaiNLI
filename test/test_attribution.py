@@ -313,13 +313,13 @@ class IGWrtTopPredictionAttributionTest(AttributionTestBase):
         super().__init__(AttributionMethods.IntegratedGradients, ForwardScoringOptions.TOP_PREDICTION, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
-        self._test_batch_versus_single_scores()
+        self._test_batch_versus_single_scores(n_steps=25)
 
     def test_consistency_inside_batch(self):
-        self._test_consistency_inside_batch()
+        self._test_consistency_inside_batch(n_steps=25)
 
     def test_consistency_across_time(self):
-        self._test_consistency_across_time()
+        self._test_consistency_across_time(n_steps=25)
 
 
 class IGWrtLossAttributionTest(AttributionTestBase):
@@ -327,10 +327,10 @@ class IGWrtLossAttributionTest(AttributionTestBase):
         super().__init__(AttributionMethods.IntegratedGradients, ForwardScoringOptions.LOSS, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
-        self._test_batch_versus_single_scores()
+        self._test_batch_versus_single_scores(n_steps=25)
 
     def test_consistency_inside_batch(self):
-        self._test_consistency_inside_batch()
+        self._test_consistency_inside_batch(n_steps=25)
 
     def test_consistency_across_time(self):
-        self._test_consistency_across_time()
+        self._test_consistency_across_time(n_steps=25)
