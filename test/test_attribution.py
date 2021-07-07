@@ -12,9 +12,9 @@ class AttributionTestBase(unittest.TestCase):
         self.model_name = 'textattack/bert-base-uncased-snli'
         self.kwargs = kwargs
 
-        self.attr_config = AttributionConfig(self.method, remove_pad_tokens=False,
+        self.attr_config = AttributionConfig(self.method, remove_pad_tokens=True,
                                              remove_cls_token=False, remove_sep_tokens=False, join_subwords=False,
-                                             normalize_scores=False,
+                                             normalize_scores=True,
                                              forward_scoring=self.scoring,
                                              aggregation_method=AggregationMethods.MEAN)
 
