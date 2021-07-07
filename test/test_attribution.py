@@ -29,24 +29,22 @@ class AttributionTestBase(unittest.TestCase):
         :return:
         """
         inputs = [("A man inspects the uniform of a figure in some East Asian country.", "The man is sleeping"),
-                       ("A soccer game with multiple males playing.", "Some men are playing a sport."),
-                       ("A black race car starts up in front of a crowd of people.",
-                        "A man is driving down a lonely road."),
-                       ("A smiling costumed woman is holding an umbrella.",
-                        "A happy woman in a fairy costume holds an umbrella.")]
+                  ("A soccer game with multiple males playing.", "Some men are playing a sport."),
+                  ("A black race car starts up in front of a crowd of people.", "A man is driving down a lonely road."),
+                  ("A smiling costumed woman is holding an umbrella.", "A happy woman in a fairy costume holds an umbrella.")]
         labels = [2, 0, 2, 1]
 
         attribution_single = NLIAttribution(model_name=self.model_name, config=self.attr_config)
 
         for pair, label in zip(inputs, labels):
-            attribution_single.attr([pair], [label])
+            attribution_single.attr([pair], [label], **kwargs)
 
         self.attribution.attr(inputs, labels, **kwargs)
+        for single_record, batch_record in zip(attribution_single.records, self.attribution.records):
+            single_scores = single_record.word_attributions
+            batch_scores = batch_record.word_attributions
 
-        single_scores = np.array([record.attr_score for record in attribution_single.records])
-        batch_scores = np.array([record.attr_score for record in self.attribution.records])
-
-        self.assertTrue(np.allclose(single_scores, batch_scores))
+            self.assertTrue(np.allclose(single_scores, batch_scores, atol=1e-5))
 
     def _test_consistency_inside_batch(self, **kwargs):
         """
