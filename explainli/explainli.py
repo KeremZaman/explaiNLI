@@ -48,9 +48,9 @@ class NLIAttribution(object):
         self.records = []  # save attribution results
 
         self.aggregation_funcs = {
-            AggregationMethods.L2: lambda x: torch.norm(x, 2, -1).squeeze(0),
-            AggregationMethods.SUM: lambda x: x.sum(dim=-1).squeeze(0),
-            AggregationMethods.MEAN: lambda x: x.mean(dim=-1).squeeze(0)
+            AggregationMethods.L2: lambda x: torch.norm(x, 2, -1),
+            AggregationMethods.SUM: lambda x: x.sum(dim=-1),
+            AggregationMethods.MEAN: lambda x: x.mean(dim=-1)
         }
 
         self.aggregation_func = self.aggregation_funcs[config.aggregation_method]
