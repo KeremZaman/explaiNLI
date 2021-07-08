@@ -285,13 +285,14 @@ class ShapleyWrtTopPredictionAttributionTest(AttributionTestBase):
         super().__init__(AttributionMethods.Shapley, ForwardScoringOptions.TOP_PREDICTION, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
-        self._test_batch_versus_single_scores()
+        self._test_batch_versus_single_scores(n_samples=1)
 
     def test_consistency_inside_batch(self):
-        self._test_consistency_inside_batch()
+
+        self._test_consistency_inside_batch(n_samples=1)
 
     def test_consistency_across_time(self):
-        self._test_consistency_across_time()
+        self._test_consistency_across_time(n_samples=1)
 
 
 class ShapleyWrtLossAttributionTest(AttributionTestBase):
@@ -299,13 +300,13 @@ class ShapleyWrtLossAttributionTest(AttributionTestBase):
         super().__init__(AttributionMethods.Shapley, ForwardScoringOptions.LOSS, *args, **kwargs)
 
     def test_batch_versus_single_scores(self):
-        self._test_batch_versus_single_scores()
+        self._test_batch_versus_single_scores(n_samples=1)
 
     def test_consistency_inside_batch(self):
-        self._test_consistency_inside_batch()
+        self._test_consistency_inside_batch(n_samples=1)
 
     def test_consistency_across_time(self):
-        self._test_consistency_across_time()
+        self._test_consistency_across_time(n_samples=1)
 
 
 class IGWrtTopPredictionAttributionTest(AttributionTestBase):
