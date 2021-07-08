@@ -2,6 +2,7 @@ import unittest
 from explainli.config import AttributionMethods, AttributionConfig, AggregationMethods, ForwardScoringOptions
 from explainli.explainli import NLIAttribution
 import numpy as np
+import torch
 
 
 class AttributionTestBase(unittest.TestCase):
@@ -90,6 +91,7 @@ class AttributionTestBase(unittest.TestCase):
         scores_step_01, scores_step_05, scores_step_10, scores_step_25 = None, None, None, None
 
         for i in range(1, 26):
+            torch.manual_seed(0)
             self.attribution.attr(inputs, labels, **kwargs)
 
             scores = np.zeros((n,
