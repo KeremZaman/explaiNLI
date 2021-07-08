@@ -162,7 +162,7 @@ class NLIAttribution(object):
                                                     attention_mask=attn_mask,
                                                     output_hidden_states=True).hidden_states[0]
             # set use_embeds_as_inputs True
-            additional_args = (labels, input_ids, None, attn_mask, True)
+            additional_args = (labels, token_type_ids, None, attn_mask, True)
             inputs = inputs_embeds
         else:
             additional_args = (labels, token_type_ids, None, attn_mask, False)
