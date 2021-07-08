@@ -286,9 +286,6 @@ class ShapleyWrtTopPredictionAttributionTest(AttributionTestBase):
     def __init__(self, *args, **kwargs):
         super().__init__(AttributionMethods.Shapley, ForwardScoringOptions.TOP_PREDICTION, *args, **kwargs)
 
-    def test_batch_versus_single_scores(self):
-        self._test_batch_versus_single_scores(n_samples=1)
-
     def test_consistency_inside_batch(self):
         feature_mask = torch.range(0, 25).unsqueeze(1).repeat(1, 1, 768).to(self.attribution.device)
         self._test_consistency_inside_batch(n_samples=10, feature_mask=feature_mask)
@@ -302,8 +299,6 @@ class ShapleyWrtLossAttributionTest(AttributionTestBase):
     def __init__(self, *args, **kwargs):
         super().__init__(AttributionMethods.Shapley, ForwardScoringOptions.LOSS, *args, **kwargs)
 
-    def test_batch_versus_single_scores(self):
-        self._test_batch_versus_single_scores(n_samples=1)
 
     def test_consistency_inside_batch(self):
         self._test_consistency_inside_batch(n_samples=1)
