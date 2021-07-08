@@ -90,6 +90,20 @@ class NLIAttribution(object):
         else:
             return False
 
+    def _is_no_batch(self) -> bool:
+        """
+        Some attribution methods in Captum strictly expects an output for each example and this makes impossible to use
+        them to calculate attributions of a batch of examples wrt loss. For those methods, iterate examples inside batch
+        during attribution calculation
+
+        :return:
+        """
+        if self.config.forward_scoring is ForwardScoringOptions.LOSS and self.config.attribution_method in \
+                [AttributionMethods.Occlusion, AttributionMethods.DeepLift]:
+            return True
+
+        return False
+
     def _construct_baseline_input(self, input_ids: torch.Tensor) -> Tuple[torch.Tensor,
                                                                           torch.Tensor, torch.Tensor, torch.Tensor]:
         """
@@ -169,7 +183,20 @@ class NLIAttribution(object):
             inputs = input_ids
 
         self.wrapper.zero_grad()
-        attributions = self.attr_method.attribute(inputs, additional_forward_args=additional_args, **kwargs)
+
+        # for no batch methods iterate examples inside batch
+        if self._is_no_batch():
+            bs = inputs.shape[0]
+            attributions_list = []
+            for i in range(bs):
+                additional_args = (labels[i:i+1], token_type_ids[i, :].unsqueeze(0), None, attn_mask[i, :].unsqueeze(0),
+                                   additional_args[4])
+                single_attr = self.attr_method.attribute(inputs[i, :].unsqueeze(0), additional_forward_args=additional_args, **kwargs).squeeze(0)
+                attributions_list.append(single_attr)
+            attributions = torch.stack(attributions_list)
+        else:
+            attributions = self.attr_method.attribute(inputs, additional_forward_args=additional_args, **kwargs)
+
         attributions = self.aggregation_func(attributions)
         attributions = torch.abs(attributions) if return_abs else attributions
 
