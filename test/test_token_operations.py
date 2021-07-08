@@ -4,8 +4,8 @@ from explainli.explainli import NLIAttribution
 
 
 class BaseTest(unittest.TestCase):
-    def __init__(self, method):
-        super().__init__()
+    def __init__(self, method, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.method = method
         self.inputs = [("A man inspects the uniform of a figure in some East Asian country.", "The man is sleeping"),
                        ("A man is playing basketball now.", "The man is kicking the ball.")]
@@ -14,8 +14,8 @@ class BaseTest(unittest.TestCase):
 
 
 class TokenRemovalBaseTest(BaseTest):
-    def __init__(self, method):
-        super().__init__(method)
+    def __init__(self, method, *args, **kwargs):
+        super().__init__(method, *args, **kwargs)
 
     def setUp(self):
         self.attr_config = AttributionConfig(self.method, remove_pad_tokens=False,
@@ -29,7 +29,7 @@ class TokenRemovalBaseTest(BaseTest):
         self.attribution.attr(self.inputs, self.labels)
 
         for record in self.attribution.records:
-            scores = record.attr_score
+            scores = record.word_attributions
             input = record.raw_input
 
             # check if input contains removed token
@@ -40,8 +40,8 @@ class TokenRemovalBaseTest(BaseTest):
 
 
 class SepTokenRemovalBaseTest(TokenRemovalBaseTest):
-    def __init__(self, method):
-        super().__init__(method)
+    def __init__(self, method, *args, **kwargs):
+        super().__init__(method, *args, **kwargs)
 
     def setUp(self):
         super().setUp()
@@ -51,14 +51,15 @@ class SepTokenRemovalBaseTest(TokenRemovalBaseTest):
                                              forward_scoring=ForwardScoringOptions.TOP_PREDICTION,
                                              aggregation_method=AggregationMethods.MEAN)
         self.attribution = NLIAttribution(model_name=self.model_name, config=self.attr_config)
+        self.token = self.attribution.tokenizer.sep_token
 
     def _test_remove_sep_token(self):
         self._test_remove_token()
 
 
 class PadTokenRemovalBaseTest(TokenRemovalBaseTest):
-    def __init__(self, method):
-        super().__init__(method)
+    def __init__(self, method, *args, **kwargs):
+        super().__init__(method, *args, **kwargs)
 
     def setUp(self):
         super().setUp()
@@ -68,14 +69,15 @@ class PadTokenRemovalBaseTest(TokenRemovalBaseTest):
                                              forward_scoring=ForwardScoringOptions.TOP_PREDICTION,
                                              aggregation_method=AggregationMethods.MEAN)
         self.attribution = NLIAttribution(model_name=self.model_name, config=self.attr_config)
+        self.token = self.attribution.tokenizer.pad_token
 
     def _test_remove_pad_token(self):
         self._test_remove_token()
 
 
 class ClsTokenRemovalBaseTest(TokenRemovalBaseTest):
-    def __init__(self, method):
-        super().__init__(method)
+    def __init__(self, method, *args, **kwargs):
+        super().__init__(method, *args, **kwargs)
 
     def setUp(self):
         super().setUp()
@@ -85,14 +87,15 @@ class ClsTokenRemovalBaseTest(TokenRemovalBaseTest):
                                              forward_scoring=ForwardScoringOptions.TOP_PREDICTION,
                                              aggregation_method=AggregationMethods.MEAN)
         self.attribution = NLIAttribution(model_name=self.model_name, config=self.attr_config)
+        self.token = self.attribution.tokenizer.cls_token
 
     def _test_remove_cls_token(self):
         self._test_remove_token()
 
 
 class SubwordBaseTest(BaseTest):
-    def __init__(self, method):
-        super().__init__(method)
+    def __init__(self, method, *args, **kwargs):
+        super().__init__(method, *args, **kwargs)
 
     def setUp(self):
         self.attr_config = AttributionConfig(self.method, remove_pad_tokens=False,
@@ -106,7 +109,7 @@ class SubwordBaseTest(BaseTest):
         self.attribution.attr(self.inputs, self.labels)
 
         for record in self.attribution.records:
-            scores = record.attr_score
+            scores = record.word_attributions
             input = record.raw_input
 
             # check if scores for the joined tokens are merged
@@ -117,32 +120,32 @@ class SubwordBaseTest(BaseTest):
 
 
 class InputXGradientSepTokenRemovalTest(SepTokenRemovalBaseTest):
-    def __init__(self):
-        super().__init__(AttributionMethods.InputXGradient)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.InputXGradient, *args, **kwargs)
 
     def test_remove_sep_token(self):
         self._test_remove_sep_token()
 
 
 class InputXGradientPadTokenRemovalTest(PadTokenRemovalBaseTest):
-    def __init__(self):
-        super().__init__(AttributionMethods.InputXGradient)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.InputXGradient, *args, **kwargs)
 
     def test_remove_pad_token(self):
         self._test_remove_pad_token()
 
 
 class InputXGradientClsTokenRemovalTest(ClsTokenRemovalBaseTest):
-    def __init__(self):
-        super().__init__(AttributionMethods.InputXGradient)
+    def __init__(self,  *args, **kwargs):
+        super().__init__(AttributionMethods.InputXGradient, *args, **kwargs)
 
     def test_remove_pad_token(self):
         self._test_remove_cls_token()
 
 
 class InputXGradientSubwordTest(SubwordBaseTest):
-    def __init__(self):
-        super().__init__(AttributionMethods.InputXGradient)
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.InputXGradient, *args, **kwargs)
 
     def _test_join_subwords(self):
         self._test_join_subwords()
