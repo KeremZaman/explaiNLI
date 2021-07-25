@@ -1,2 +1,4 @@
 transformers
 captum
+scikit-learn
+tqdm
