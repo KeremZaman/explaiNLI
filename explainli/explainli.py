@@ -265,12 +265,15 @@ class NLIAttribution(object):
 
         return attributions
 
-    def visualize(self):
+    def visualize(self, start: Optional[int]=0, num: Optional[int]=None):
         """
         Visualize saved attributions
+        :param start:
+        :param num:
         :return:
         """
-        viz.visualize_text(self.records)
+        end = start+num if num is not None else len(self.records)
+        viz.visualize_text(self.records[start:end])
 
     class ModelWrapper(nn.Module):
         """
