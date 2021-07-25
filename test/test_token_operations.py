@@ -8,8 +8,9 @@ class BaseTest(unittest.TestCase):
         super().__init__(*args, **kwargs)
         self.method = method
         self.inputs = [("A man inspects the uniform of a figure in some East Asian country.", "The man is sleeping"),
-                       ("A man is playing basketball now.", "The man is kicking the ball.")]
-        self.labels = [2, 0]
+                       ("A man is playing basketball now.", "The man is kicking the ball."),
+                       ('"A woman with a green headscarf, blue shirt and a very big grin."', 'The woman is young.')]
+        self.labels = [2, 0, 1]
         self.model_name = 'textattack/bert-base-uncased-snli'
 
 

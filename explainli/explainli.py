@@ -235,13 +235,16 @@ class NLIAttribution(object):
             # attributions are calculated for each token. it may be needed to get word-wise scores for visualization and
             # evaluation purposes
             if self.config.join_subwords:
-                for i, token in enumerate(tokens):
-                    if token.startswith('##'):
-                        token = token.replace('##', '')
-                        tokens[i - 1] = tokens[i - 1] + token
+                i = 0
+                while i < len(tokens):
+                    if tokens[i].startswith('##'):
+                        tokens[i] = tokens[i].replace('##', '')
+                        tokens[i - 1] = tokens[i - 1] + tokens[i]
                         tokens.pop(i)
                         attribution_item[i - 1] += attribution_item[i]
                         attribution_item.pop(i)
+                    else:
+                        i += 1
 
             # normalize scores between (-1, 1)
             if self.config.normalize_scores:
