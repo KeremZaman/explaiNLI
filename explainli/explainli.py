@@ -9,6 +9,7 @@ from captum.attr import GuidedBackprop, Saliency, GradientShap, Occlusion, Shapl
 
 from .config import AttributionConfig, AggregationMethods, ForwardScoringOptions, AttributionMethods
 from functools import partial
+import pickle
 
 from typing import Tuple, List, Optional
 
@@ -55,7 +56,9 @@ class NLIAttribution(object):
 
         self.aggregation_func = self.aggregation_funcs[config.aggregation_method]
 
+        self.model_name = model_name
         self.config = config
+        self.kwargs = kwargs
         self.label_names = self.config.label_names
 
         if self._is_input_attribution():
@@ -274,6 +277,42 @@ class NLIAttribution(object):
         """
         end = start+num if num is not None else len(self.records)
         viz.visualize_text(self.records[start:end])
+
+    def save(self, path: str):
+        """
+        Save attribution object along with configuration, model name and calculated attributions to the given path
+
+        :param path:
+        :return:
+        """
+
+        attr_dict = {
+            'model_name': self.model_name,
+            'config': self.config,
+            'records': self.records,
+            'kwargs': self.kwargs,
+        }
+
+        with open(path, 'wb') as file:
+            pickle.dump(attr_dict, file)
+
+    @classmethod
+    def from_file(cls, path: str):
+        """
+        Create a new attribution object from a pre-saved file to restore config, model and previously calculated
+        attribution scores
+
+        :param path:
+        :return:
+        """
+
+        with open(path, 'rb') as file:
+            attr_dict = pickle.load(file)
+
+        attribution = NLIAttribution(attr_dict['model_name'], attr_dict['config'], **attr_dict['kwargs'])
+        attribution.records = attr_dict['records']
+
+        return attribution
 
     class ModelWrapper(nn.Module):
         """
