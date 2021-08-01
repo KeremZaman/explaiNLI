@@ -1,6 +1,8 @@
 import unittest
 from explainli.config import AttributionMethods, AttributionConfig, AggregationMethods, ForwardScoringOptions
 from explainli.explainli import NLIAttribution
+from captum._utils.models.linear_model import SkLearnLasso
+from captum.attr._core.lime import get_exp_kernel_similarity_function
 import numpy as np
 import torch
 
@@ -330,3 +332,33 @@ class IGWrtLossAttributionTest(AttributionTestBase):
 
     def test_consistency_across_time(self):
         self._test_consistency_across_time(n_steps=25)
+
+
+class LIMEWrtTopPredictionAttributionTest(AttributionTestBase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.LIME, ForwardScoringOptions.TOP_PREDICTION, *args, **kwargs)
+
+    def setUp(self):
+        self.attribution = NLIAttribution(model_name=self.model_name, config=self.attr_config,
+                                          interpretable_model=SkLearnLasso(alpha=0.08),
+                                          similarity_func=get_exp_kernel_similarity_function('cosine', 1.0),
+                                          **self.kwargs)
+
+    def test_consistency_across_time(self):
+        feature_mask = torch.range(0, 25).unsqueeze(1).repeat(1, 1, 768).to(self.attribution.device).long()
+        self._test_consistency_across_time(n_samples=20, feature_mask=feature_mask, perturbations_per_eval=8)
+
+
+class LIMEWrtLossAttributionTest(AttributionTestBase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(AttributionMethods.LIME, ForwardScoringOptions.LOSS, *args, **kwargs)
+
+    def setUp(self):
+        self.attribution = NLIAttribution(model_name=self.model_name, config=self.attr_config,
+                                          interpretable_model=SkLearnLasso(alpha=0.08),
+                                          similarity_func=get_exp_kernel_similarity_function('cosine', 1.0),
+                                          **self.kwargs)
+
+    def test_consistency_across_time(self):
+        feature_mask = torch.range(0, 25).unsqueeze(1).repeat(1, 1, 768).to(self.attribution.device).long()
+        self._test_consistency_across_time(n_samples=20, feature_mask=feature_mask, perturbations_per_eval=1)
