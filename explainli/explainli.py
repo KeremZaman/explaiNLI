@@ -102,8 +102,9 @@ class NLIAttribution(object):
 
         :return:
         """
-        if self.config.forward_scoring is ForwardScoringOptions.LOSS and self.config.attribution_method in \
-                [AttributionMethods.Occlusion, AttributionMethods.DeepLift, AttributionMethods.Shapley]:
+        if (self.config.forward_scoring is ForwardScoringOptions.LOSS and self.config.attribution_method in \
+                [AttributionMethods.Occlusion, AttributionMethods.DeepLift]) or self.config.attribution_method in \
+                [AttributionMethods.Shapley, AttributionMethods.LIME]:
             return True
 
         return False
