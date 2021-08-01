@@ -5,7 +5,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 from captum.attr import visualization as viz
 from captum.attr import LayerIntegratedGradients, LayerGradientXActivation, LayerDeepLift, LayerActivation
-from captum.attr import GuidedBackprop, Saliency, GradientShap, Occlusion, ShapleyValueSampling
+from captum.attr import GuidedBackprop, Saliency, Occlusion, ShapleyValueSampling, Lime
 
 from .config import AttributionConfig, AggregationMethods, ForwardScoringOptions, AttributionMethods
 from functools import partial
@@ -23,7 +23,7 @@ ATTRIBUTION_METHOD_MAP = {
     AttributionMethods.Saliency: Saliency,
     AttributionMethods.Shapley: ShapleyValueSampling,
     AttributionMethods.Occlusion: Occlusion,
-    AttributionMethods.GradientShap: GradientShap
+    AttributionMethods.LIME: Lime
 }
 
 
@@ -75,7 +75,7 @@ class NLIAttribution(object):
         :return:
         """
         if self.config.attribution_method in [AttributionMethods.IntegratedGradients, AttributionMethods.Shapley,
-                                              AttributionMethods.Occlusion]:
+                                              AttributionMethods.Occlusion, AttributionMethods.LIME]:
             return True
         else:
             return False
@@ -88,8 +88,8 @@ class NLIAttribution(object):
         :return:
         """
         if self.config.attribution_method in [AttributionMethods.GuidedBackprop, AttributionMethods.Saliency,
-                                              AttributionMethods.Shapley, AttributionMethods.GradientShap,
-                                              AttributionMethods.Occlusion]:
+                                              AttributionMethods.Shapley, AttributionMethods.Occlusion,
+                                              AttributionMethods.LIME]:
             return True
         else:
             return False

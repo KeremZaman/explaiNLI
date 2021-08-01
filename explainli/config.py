@@ -17,14 +17,14 @@ class ForwardScoringOptions(Enum):
 class AttributionMethods(Enum):
     InputXGradient = 0
     DeepLift = 1
-    GradientShap = 2
-    LayerConductance = 3
-    Activation = 4
-    IntegratedGradients = 5
-    GuidedBackprop = 6
-    Saliency = 7
-    Shapley = 8
-    Occlusion = 9
+    LayerConductance = 2
+    Activation = 3
+    IntegratedGradients = 4
+    GuidedBackprop = 5
+    Saliency = 6
+    Shapley = 7
+    Occlusion = 8
+    LIME = 9
 
 
 class AttributionConfig(object):
