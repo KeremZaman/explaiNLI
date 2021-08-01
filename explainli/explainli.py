@@ -104,7 +104,7 @@ class NLIAttribution(object):
         """
         if (self.config.forward_scoring is ForwardScoringOptions.LOSS and self.config.attribution_method in \
                 [AttributionMethods.Occlusion, AttributionMethods.DeepLift]) or self.config.attribution_method in \
-                [AttributionMethods.Shapley, AttributionMethods.LIME]:
+                [AttributionMethods.Shapley]:
             return True
 
         return False
