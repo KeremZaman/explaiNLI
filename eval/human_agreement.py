@@ -122,7 +122,8 @@ def calculate_f1(data: Dict[str, Union[int, str, List[int]]], attribution: NLIAt
     return f1
 
 
-def evaluate(attribution: NLIAttribution, dataset_path: str, batch_size: int, **kwargs) -> Tuple[Dict, float, float]:
+def evaluate(attribution: NLIAttribution, dataset_path: str, batch_size: int, threshold: float=0.5, **kwargs) -> \
+        Tuple[Dict, float, float]:
     """
     Evaluate agreement with human rationales by calculating mean average precision and f1 scores for the given dataset
     with the given attribution object
@@ -130,6 +131,7 @@ def evaluate(attribution: NLIAttribution, dataset_path: str, batch_size: int, **
     :param attribution:
     :param dataset_path:
     :param batch_size:
+    :param threshold:
     :param kwargs:
     :return:
     """
@@ -138,7 +140,7 @@ def evaluate(attribution: NLIAttribution, dataset_path: str, batch_size: int, **
     calculate_attributions(data, attribution, batch_size, **kwargs)
 
     map_score = calculate_map(data, attribution)
-    f1 = calculate_f1(data, attribution)
+    f1 = calculate_f1(data, attribution, threshold)
 
     return data, map_score, f1
 
