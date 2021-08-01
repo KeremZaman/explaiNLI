@@ -74,7 +74,8 @@ class NLIAttribution(object):
 
         :return:
         """
-        if self.config.attribution_method in [AttributionMethods.IntegratedGradients, AttributionMethods.GradientShap]:
+        if self.config.attribution_method in [AttributionMethods.IntegratedGradients, AttributionMethods.Shapley,
+                                              AttributionMethods.Occlusion]:
             return True
         else:
             return False
@@ -168,8 +169,15 @@ class NLIAttribution(object):
             ref_input_ids, ref_attn_mask, ref_token_type_ids, ref_position_ids = self._construct_baseline_input(
                 input_ids)
 
-            # hide baseline input into attribute function to be able use it in a generalized way
-            self.attr_method.attribute = partial(self.attr_method.attribute, baselines=ref_input_ids)
+            if self._is_input_attribution():
+                ref_inputs = self._nli_forward_plain(input_ids=ref_input_ids, labels=labels,
+                                                     token_type_ids=ref_token_type_ids,
+                                                     attention_mask=ref_attn_mask,
+                                                     output_hidden_states=True).hidden_states[0]
+            else:
+                ref_inputs = ref_input_ids
+
+            self.attr_method.attribute = partial(self.attr_method.attribute, baselines=ref_inputs)
 
         # if select method is implemented as input attribution, make model use input embeddings as input
         if self._is_input_attribution():
