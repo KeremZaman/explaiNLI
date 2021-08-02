@@ -353,7 +353,7 @@ class NLIAttribution(object):
                                   position_ids=position_ids, attention_mask=attention_mask, labels=labels)
 
             if self.config.forward_scoring is ForwardScoringOptions.LOSS:
-                return pred['loss'].unsqueeze(0)
+                return -pred['loss'].unsqueeze(0)
             elif self.config.forward_scoring is ForwardScoringOptions.TOP_PREDICTION:
                 return pred['logits'].max(1).values
             elif self.config.forward_scoring is ForwardScoringOptions.PREDICTION_CLASS:
