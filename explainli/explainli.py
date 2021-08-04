@@ -80,6 +80,15 @@ class NLIAttribution(object):
         else:
             return False
 
+    def _is_feature_mask_required(self) -> bool:
+        """
+        Return whether the attribution method requires feature_mask parameter
+
+        :return:
+        """
+
+        return self.config.attribution_method in [AttributionMethods.Shapley, AttributionMethods.LIME]
+
     def _is_input_attribution(self) -> bool:
         """
         Some of the methods is implemented by using Layer Attribution of captum for convenience. The other ones, that
@@ -201,12 +210,27 @@ class NLIAttribution(object):
             bs = inputs.shape[0]
             attributions_list = []
             for i in range(bs):
+                # some methods require feature_mask in the shape of given sequence
+                # if it's not given explicitly, calculate create feature mask to prevent intervening inner processes of
+                # attribution calculation
+                if self._is_feature_mask_required() and 'feature_mask' not in kwargs:
+                    seq_length = inputs[i].shape[0]
+                    feature_mask = torch.range(0, seq_length - 1).unsqueeze(1).repeat(1, 1, 768).long().to(self.device)
+                    kwargs['feature_mask'] = feature_mask
+
                 additional_args = (labels[i:i+1], token_type_ids[i, :].unsqueeze(0), None, attn_mask[i, :].unsqueeze(0),
                                    additional_args[4])
                 single_attr = self.attr_method.attribute(inputs[i, :].unsqueeze(0), additional_forward_args=additional_args, **kwargs).squeeze(0)
                 attributions_list.append(single_attr)
             attributions = torch.stack(attributions_list)
+
         else:
+
+            if self._is_feature_mask_required() and 'feature_mask' not in kwargs:
+                seq_length = inputs.shape[1]
+                feature_mask = torch.range(0, seq_length - 1).unsqueeze(1).repeat(1, 1, 768).long().to(self.device)
+                kwargs['feature_mask'] = feature_mask
+
             attributions = self.attr_method.attribute(inputs, additional_forward_args=additional_args, **kwargs)
 
         attributions = self.aggregation_func(attributions)
