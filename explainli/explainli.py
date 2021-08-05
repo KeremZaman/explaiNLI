@@ -75,7 +75,8 @@ class NLIAttribution(object):
         :return:
         """
         if self.config.attribution_method in [AttributionMethods.IntegratedGradients, AttributionMethods.Shapley,
-                                              AttributionMethods.Occlusion, AttributionMethods.LIME]:
+                                              AttributionMethods.Occlusion, AttributionMethods.LIME,
+                                              AttributionMethods.DeepLift]:
             return True
         else:
             return False
@@ -112,7 +113,7 @@ class NLIAttribution(object):
         :return:
         """
         if (self.config.forward_scoring is ForwardScoringOptions.LOSS and self.config.attribution_method in \
-                [AttributionMethods.Occlusion, AttributionMethods.DeepLift]) or self.config.attribution_method in \
+                [AttributionMethods.Occlusion]) or self.config.attribution_method in \
                 [AttributionMethods.Shapley]:
             return True
 
