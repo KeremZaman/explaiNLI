@@ -55,7 +55,6 @@ def create_dataset_perturbations(data: Dict[str, Union[str, int]], unmasker: pip
     # tokenize all data at first
     premise_tokens_list = tokenizer(data['premise'])['input_ids']
     hypothesis_tokens_list = tokenizer(data['hypothesis'])['input_ids']
-    hypothesis_tokens_list.pop(0)  # remove CLS token
     label_list = data['label']
 
     print("Perturbing data...")
