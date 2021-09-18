@@ -3,3 +3,4 @@ datasets
 captum
 scikit-learn
 tqdm
+scipy
