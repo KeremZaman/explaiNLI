@@ -1,6 +1,8 @@
 from explainli.explainli import NLIAttribution
 
 from transformers import PreTrainedTokenizer, PreTrainedModel, AutoTokenizer, AutoModel
+from tokenizers.pre_tokenizers import WhitespaceSplit, Punctuation
+from tokenizers import pre_tokenizers
 from datasets import load_dataset
 import datasets
 
@@ -32,11 +34,11 @@ def awesome_align(src: str, tgt: str, tokenizer: PreTrainedTokenizer, model: Pre
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = model.to(device)
 
-    # add space before and after punctuations to view them as separate words
-    for p in string.punctuation:
-        src = src.replace(p, f' {p} ')
-        tgt = tgt.replace(p, f' {p} ')
-    src_sent, tgt_sent = src.strip().split(), tgt.strip().split()
+    # split to words in a way that is compatible with tokenizer to prevent different interpretations of some unicode
+    # characters such as \u001d
+    pre_tokenizer = pre_tokenizers.Sequence([WhitespaceSplit(), Punctuation()])
+    src_sent = list(map(lambda x: x[0], pre_tokenizer.pre_tokenize_str(src)))
+    tgt_sent = list(map(lambda x: x[0], pre_tokenizer.pre_tokenize_str(tgt)))
 
     src_word_ids = tokenizer(src_sent, add_special_tokens=False)['input_ids']
     tgt_word_ids = tokenizer(tgt_sent, add_special_tokens=False)['input_ids']
