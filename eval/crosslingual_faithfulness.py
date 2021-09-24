@@ -1,8 +1,6 @@
 from explainli.explainli import NLIAttribution
 
 from transformers import PreTrainedTokenizer, PreTrainedModel, AutoTokenizer, AutoModel
-from tokenizers.pre_tokenizers import WhitespaceSplit, Punctuation
-from tokenizers import pre_tokenizers
 from datasets import load_dataset
 import datasets
 
@@ -12,9 +10,31 @@ from scipy.stats import spearmanr
 
 from tqdm import tqdm
 
-import string
 import itertools
 from typing import Set, Tuple, List, Dict
+
+
+def _word_tokenize(txt: str, tokenizer: PreTrainedTokenizer) -> List[str]:
+    """
+    Split sentences into words in a way that is compatible with the given pretrained tokenizer which is joining subwords
+    after tokenization
+
+    :param txt:
+    :return:
+    """
+    token_ids = tokenizer(txt, add_special_tokens=False)['input_ids']
+    tokens = tokenizer.convert_ids_to_tokens(token_ids)
+
+    i = 0
+    while i < len(tokens):
+        if tokens[i].startswith('##'):
+            tokens[i] = tokens[i].replace('##', '')
+            tokens[i - 1] = tokens[i - 1] + tokens[i]
+            tokens.pop(i)
+        else:
+            i += 1
+
+    return tokens
 
 
 def awesome_align(src: str, tgt: str, tokenizer: PreTrainedTokenizer, model: PreTrainedModel, align_layer: int = 8,
@@ -34,11 +54,9 @@ def awesome_align(src: str, tgt: str, tokenizer: PreTrainedTokenizer, model: Pre
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = model.to(device)
 
-    # split to words in a way that is compatible with tokenizer to prevent different interpretations of some unicode
-    # characters such as \u001d
-    pre_tokenizer = pre_tokenizers.Sequence([WhitespaceSplit(), Punctuation()])
-    src_sent = list(map(lambda x: x[0], pre_tokenizer.pre_tokenize_str(src)))
-    tgt_sent = list(map(lambda x: x[0], pre_tokenizer.pre_tokenize_str(tgt)))
+    # split to words in the same way with the tokenizer to prevent different interpretations of some unicode
+    # characters such as \u001d, \u06d4
+    src_sent, tgt_sent = _word_tokenize(src, tokenizer), _word_tokenize(tgt, tokenizer)
 
     src_word_ids = tokenizer(src_sent, add_special_tokens=False)['input_ids']
     tgt_word_ids = tokenizer(tgt_sent, add_special_tokens=False)['input_ids']
