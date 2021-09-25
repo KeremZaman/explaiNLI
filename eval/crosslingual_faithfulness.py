@@ -11,7 +11,7 @@ from scipy.stats import spearmanr
 from tqdm import tqdm
 
 import itertools
-from typing import Set, Tuple, List, Dict
+from typing import Set, Tuple, List, Dict, Optional
 
 
 def _word_tokenize(txt: str, tokenizer: PreTrainedTokenizer) -> List[str]:
@@ -91,12 +91,13 @@ def awesome_align(src: str, tgt: str, tokenizer: PreTrainedTokenizer, model: Pre
     return align_words
 
 
-def create_dataset_with_alignments(dataset: datasets.DatasetDict) -> Tuple[List[Tuple[str, str]], List[int],
-                                                                           List[Set[Tuple[int, int]]]]:
+def create_dataset_with_alignments(dataset: datasets.DatasetDict, word_aligner: Optional[str] = None) -> \
+        Tuple[List[Tuple[str, str]], List[int], List[Set[Tuple[int, int]]]]:
     """
     Create dataset of pairs with their ground truth labels and word alignment maps.
 
     :param dataset: HF Dataset object
+    :param word_aligner: Path to alignment model
     :return:
     """
 
@@ -104,7 +105,7 @@ def create_dataset_with_alignments(dataset: datasets.DatasetDict) -> Tuple[List[
     idx_en = dataset['hypothesis'][0]['language'].index('en')
 
     # set model and tokenizer for word alignment
-    multilingual_model_name = 'bert-base-multilingual-cased'
+    multilingual_model_name = 'bert-base-multilingual-cased' if word_aligner is None else word_aligner
     tokenizer = AutoTokenizer.from_pretrained(multilingual_model_name)
     model = AutoModel.from_pretrained(multilingual_model_name)
 
@@ -195,7 +196,8 @@ def calc_correlations(attribution: NLIAttribution, alignments: List[Set[Tuple[in
     return avg_correlation, avg_correlations_per_lang, avg_pval, avg_pvalues_per_lang
 
 
-def evaluate(attribution: NLIAttribution, batch_size: int, max_instances=None, dataset_with_alignments=None,
+def evaluate(attribution: NLIAttribution, batch_size: int, max_instances: Optional[int] = None,
+             word_aligner: Optional[str] = None, dataset_with_alignments: Optional[Tuple]=None,
              **kwargs) -> Tuple[Tuple[List[Tuple[str, str]], List[int], List[Set[Tuple[int, int]]]], float,
                                 Dict[str, float], float, Dict[str, float]]:
     """
@@ -210,6 +212,7 @@ def evaluate(attribution: NLIAttribution, batch_size: int, max_instances=None, d
     :param attribution:
     :param batch_size:
     :param max_instances:
+    :param word_aligner: path to alignment model
     :param dataset_with_alignments: dataset with pre-calculated alignments
     :param kwargs: additional arguments for attribution function
     :return:
@@ -221,7 +224,7 @@ def evaluate(attribution: NLIAttribution, batch_size: int, max_instances=None, d
     if max_instances:
         dataset = dataset[:max_instances]
 
-    pairs, labels, alignments = create_dataset_with_alignments(dataset) if dataset_with_alignments is None \
+    pairs, labels, alignments = create_dataset_with_alignments(dataset, word_aligner) if dataset_with_alignments is None \
         else dataset_with_alignments
 
     # calculate attributions
