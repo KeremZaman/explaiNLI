@@ -91,13 +91,15 @@ def awesome_align(src: str, tgt: str, tokenizer: PreTrainedTokenizer, model: Pre
     return align_words
 
 
-def create_dataset_with_alignments(dataset: datasets.DatasetDict, word_aligner: Optional[str] = None) -> \
+def create_dataset_with_alignments(dataset: datasets.DatasetDict, word_aligner: Optional[str] = None,
+                                   selected_languages: Optional[List[str]] = None) -> \
         Tuple[List[Tuple[str, str]], List[int], List[Set[Tuple[int, int]]]]:
     """
     Create dataset of pairs with their ground truth labels and word alignment maps.
 
     :param dataset: HF Dataset object
     :param word_aligner: Path to alignment model
+    :param selected_languages: List of languages to process from the dataset, if given
     :return:
     """
 
@@ -125,6 +127,8 @@ def create_dataset_with_alignments(dataset: datasets.DatasetDict, word_aligner: 
         for i, lang in enumerate(languages):
             # English instance is already inserted
             if lang.strip() == 'en':
+                continue
+            if selected_languages is not None and lang.strip() not in selected_languages:
                 continue
 
             pairs.append((premise[lang], hypothesis['translation'][i]))
@@ -197,7 +201,8 @@ def calc_correlations(attribution: NLIAttribution, alignments: List[Set[Tuple[in
 
 
 def evaluate(attribution: NLIAttribution, batch_size: int, max_instances: Optional[int] = None,
-             word_aligner: Optional[str] = None, dataset_with_alignments: Optional[Tuple]=None,
+             word_aligner: Optional[str] = None, selected_languages: Optional[List[str]] = None,
+             dataset_with_alignments: Optional[Tuple]=None,
              **kwargs) -> Tuple[Tuple[List[Tuple[str, str]], List[int], List[Set[Tuple[int, int]]]], float,
                                 Dict[str, float], float, Dict[str, float]]:
     """
@@ -213,6 +218,7 @@ def evaluate(attribution: NLIAttribution, batch_size: int, max_instances: Option
     :param batch_size:
     :param max_instances:
     :param word_aligner: path to alignment model
+    :param selected_languages: List of languages to process from the dataset, if given
     :param dataset_with_alignments: dataset with pre-calculated alignments
     :param kwargs: additional arguments for attribution function
     :return:
@@ -224,8 +230,8 @@ def evaluate(attribution: NLIAttribution, batch_size: int, max_instances: Option
     if max_instances:
         dataset = dataset[:max_instances]
 
-    pairs, labels, alignments = create_dataset_with_alignments(dataset, word_aligner) if dataset_with_alignments is None \
-        else dataset_with_alignments
+    pairs, labels, alignments = create_dataset_with_alignments(dataset, word_aligner, selected_languages) if \
+        dataset_with_alignments is None else dataset_with_alignments
 
     # calculate attributions
     for i in tqdm(range(0, len(alignments), batch_size)):
