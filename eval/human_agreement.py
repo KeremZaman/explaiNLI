@@ -10,7 +10,7 @@ import csv
 from typing import List, Dict, Union, Tuple
 
 
-def _create_gold_labels(highlighted_sentence: List[str]) -> List[int]:
+def _create_gold_labels(highlighted_sentence: str) -> List[int]:
     """
     Create a list of gold labels from the given highlighted sentence
 
@@ -34,7 +34,7 @@ def _create_gold_labels(highlighted_sentence: List[str]) -> List[int]:
     return gold_labels
 
 
-def read_dataset(path: str, label_names: List[str]) -> Dict[str, Union[int, str, List[int]]]:
+def read_dataset(path: str, label_names: List[str]) -> List[Dict[str, Union[int, str, List[int]]]]:
     """
     Read CSV file for e-SNLI dataset and convert to a dictionary consisting of pair ID, sentence pairs, label and a list
     of binary labels for highlights
@@ -63,7 +63,7 @@ def read_dataset(path: str, label_names: List[str]) -> Dict[str, Union[int, str,
     return data
 
 
-def calculate_attributions(data: Dict[str, Union[int, str, List[int]]], attribution: NLIAttribution,
+def calculate_attributions(data: List[Dict[str, Union[int, str, List[int]]]], attribution: NLIAttribution,
                            batch_size: int, **kwargs):
     """
     Calculate attribution scores for each instance in the given dataset by splitting into batches
@@ -85,7 +85,7 @@ def calculate_attributions(data: Dict[str, Union[int, str, List[int]]], attribut
         attribution.attr(pairs, labels, **kwargs)
 
 
-def calculate_map(data: Dict[str, Union[int, str, List[int]]], attribution: NLIAttribution) -> float:
+def calculate_map(data: List[Dict[str, Union[int, str, List[int]]]], attribution: NLIAttribution) -> float:
     """
     Calculate mean Average Precision (mAP) by using attribution scores and gold labels for each instance
 
