@@ -23,11 +23,13 @@ def _create_gold_labels(highlighted_sentence: str) -> List[int]:
 
         # highlighted words are marked as *word*
         marked = True if (word.startswith('*') and word.endswith('*')) else False
-        word = word.strip('*')
+        # if word just consists of *, do not strip
+        word = word.strip('*') if word != '*' else word
 
         # add space for each punctuation, split word to count punctuations as new tokens and make their label the same
         # with the main word
-        word = reduce(lambda w, p: w.replace(p, f' {p} '), punctuation, word)
+        if word != '[UNK]':  # do not treat brackets in [UNK] as punctuation
+            word = reduce(lambda w, p: w.replace(p, f' {p} '), punctuation, word)
         for token in word.split():
             gold_labels.append(1 if marked else 0)
 
