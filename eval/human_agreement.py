@@ -99,6 +99,8 @@ def calculate_map(data: List[Dict[str, Union[int, str, List[int]]]], attribution
 
     for record, item in zip(attribution.records, data):
         ap = average_precision_score(item['highlight_gold_labels'], record.word_attributions)
+        if np.isnan(ap):
+            continue
         ap_scores.append(ap)
 
     mean_ap = np.mean(ap_scores)
