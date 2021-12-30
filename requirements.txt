@@ -4,3 +4,5 @@ captum
 scikit-learn
 tqdm
 scipy
+pandas
+numpy
