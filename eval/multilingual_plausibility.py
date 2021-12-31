@@ -67,7 +67,7 @@ def extract_rationales(attribution: NLIAttribution, dataset: datasets.DatasetDic
             premise = premises[lang]
             hypothesis = hypotheses['translation'][lang_idx]
             pairs[lang].append((premise, hypothesis))
-            labels.append(label)
+        labels.append(label)
 
     # calculate attribution scores for source language split
     for i in tqdm(range(0, len(pairs[src_lang]), batch_size)):
