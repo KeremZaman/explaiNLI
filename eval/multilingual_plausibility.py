@@ -79,8 +79,9 @@ def extract_rationales(attribution: NLIAttribution, dataset: datasets.DatasetDic
         # find sep token position to split combined text into premise and hypothesis again
         # do not include sep token
         sep_pos = record.raw_input.index(attribution.tokenizer.sep_token)
+        # do not include scores for SEP tokens in the middle and at the end of sentence
         prem_attributions, hyp_attributions = np.array(record.word_attributions[:sep_pos]), \
-                                              np.array(record.word_attributions[sep_pos+1:])
+                                              np.array(record.word_attributions[sep_pos+1:-1])
 
         # get positions of the words having score bigger than threshold
         highlight_idxs = np.where(prem_attributions > threshold)[0].tolist(), np.where(hyp_attributions >
