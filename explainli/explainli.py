@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from transformers.models.xlm_roberta.modeling_xlm_roberta import XLMRobertaForSequenceClassification
+from transformers.models.bert.modeling_bert import BertForSequenceClassification
 
 from captum.attr import visualization as viz
 from captum.attr import LayerIntegratedGradients, LayerGradientXActivation, LayerDeepLift, LayerActivation
@@ -46,6 +48,11 @@ class NLIAttribution(object):
         self.wrapper.to(self.device)
         self.wrapper.eval()
 
+        if type(self.wrapper.model) is BertForSequenceClassification:
+            self.model_type = 'bert'
+        elif type(self.wrapper.model) is XLMRobertaForSequenceClassification:
+            self.model_type = 'roberta'
+
         self.records = []  # save attribution results
 
         self.aggregation_funcs = {
@@ -65,7 +72,7 @@ class NLIAttribution(object):
             self.attr_method = ATTRIBUTION_METHOD_MAP.get(self.config.attribution_method)(self.wrapper, **kwargs)
         else:
             self.attr_method = ATTRIBUTION_METHOD_MAP.get(self.config.attribution_method)(self.wrapper,
-                                                                                          layer=self.wrapper.model.bert.embeddings,
+                                                                                          layer=getattr(self.wrapper.model,self.model_type).embeddings,
                                                                                           **kwargs)
 
     def _is_baseline_required(self) -> bool:
@@ -119,11 +126,40 @@ class NLIAttribution(object):
 
         return False
 
+    def _convert_subwords(self, tokens: List[str]) -> List[str]:
+        """
+        BertTokenizer puts custom symbol, which is '##', for denoting subwords while some other tokenizers,
+        such as Roberta and XLM-Roberta, put a custom symbol for denoting full words. For convenience, convert them to
+        the same format with the BertTokenizer.
+
+        :param tokens:
+        :return:
+        """
+        converted_tokens = []
+
+        if self.model_type == 'roberta':
+
+            subword_symbol = '▁'
+            special_tokens = [self.tokenizer.cls_token, self.tokenizer.sep_token, self.tokenizer.pad_token,
+                              self.tokenizer.mask_token, self.tokenizer.unk_token]
+
+            for token in tokens:
+                if token.startswith(subword_symbol) or token in special_tokens:
+                    token = token.replace(subword_symbol, '')
+                else:
+                    token = f"##{token}"
+
+                converted_tokens.append(token)
+        else:
+            converted_tokens = tokens
+
+        return converted_tokens
+
     def _construct_baseline_input(self, input_ids: torch.Tensor) -> Tuple[torch.Tensor,
                                                                           torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Create baseline inputs for the methods requiring baseline
-        Baseline inputs are all zero vectors for each token in input except SEP and CLS token (like at the captum
+        Baseline inputs are all [PAD] tokens except SEP and CLS token (like at the captum
         tutorials)
 
         :param input_ids:
@@ -131,11 +167,16 @@ class NLIAttribution(object):
         """
         cls_token_id = self.tokenizer.cls_token_id
         sep_token_id = self.tokenizer.sep_token_id
+        pad_token_id = self.tokenizer.pad_token_id
 
-        ref_input_ids = torch.where((input_ids == cls_token_id) | (input_ids == sep_token_id), input_ids, 0)
+        ref_input_ids = torch.where((input_ids == cls_token_id) | (input_ids == sep_token_id), input_ids, pad_token_id)
         ref_attn_mask = torch.ones_like(input_ids, device=self.device)
-        ref_token_type_ids = torch.zeros_like(input_ids, device=self.device)
-        ref_position_ids = torch.zeros_like(input_ids, device=self.device)
+
+        if type(self.wrapper.model) is XLMRobertaForSequenceClassification:
+            ref_token_type_ids, ref_position_ids = None, None
+        else:
+            ref_token_type_ids = torch.zeros_like(input_ids, device=self.device)
+            ref_position_ids = torch.zeros_like(input_ids, device=self.device)
 
         return ref_input_ids, ref_attn_mask, ref_token_type_ids, ref_position_ids
 
@@ -173,7 +214,10 @@ class NLIAttribution(object):
         encoded_inputs = self.tokenizer(inputs, return_tensors='pt', padding=True)
         input_ids = encoded_inputs['input_ids'].to(self.device)
         attn_mask = encoded_inputs['attention_mask'].to(self.device)
-        token_type_ids = encoded_inputs['token_type_ids'].to(self.device)
+
+        token_type_ids = encoded_inputs.get('token_type_ids', None)
+        if token_type_ids is not None:
+            token_type_ids = token_type_ids.to(self.device)
 
         # construct baseline input if the selected attribution method requires
         if self._is_baseline_required():
@@ -272,6 +316,9 @@ class NLIAttribution(object):
             # attributions are calculated for each token. it may be needed to get word-wise scores for visualization and
             # evaluation purposes
             if self.config.join_subwords:
+                # convert tokens to common format
+                tokens = self._convert_subwords(tokens)
+
                 i = 0
                 while i < len(tokens):
                     if tokens[i].startswith('##'):
