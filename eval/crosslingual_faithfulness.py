@@ -237,6 +237,11 @@ def calc_correlations(attribution: NLIAttribution, alignments: List[Set[Tuple[in
 
         # calculate spearman correlation and p-value and store them for each language
         rho, pval = spearmanr(ref_scores, aligned_scores)
+
+        # rho/p-value can be NaN in some rare circumstances, ignore that instance in such cases
+        if np.isnan(rho) or np.isnan(pval):
+            continue
+
         correlations_per_lang[languages[i % num_languages]].append(rho)
         pvalues_per_lang[languages[i % num_languages]].append(pval)
 
