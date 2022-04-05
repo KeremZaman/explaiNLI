@@ -1,6 +1,6 @@
 from explainli.explainli import NLIAttribution
 
-from transformers import PreTrainedTokenizer, PreTrainedModel, AutoTokenizer, AutoModel
+from transformers import PreTrainedTokenizer, PreTrainedModel, AutoTokenizer, AutoModel, BertTokenizer, BertTokenizerFast
 from datasets import load_dataset
 import datasets
 
@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 import itertools
 from typing import Set, Tuple, List, Dict, Optional
+import string
 
 
 def _word_tokenize(txt: str, tokenizer: PreTrainedTokenizer) -> List[str]:
@@ -40,7 +41,7 @@ def _word_tokenize(txt: str, tokenizer: PreTrainedTokenizer) -> List[str]:
 def awesome_align(src: str, tgt: str, tokenizer: PreTrainedTokenizer, model: PreTrainedModel, align_layer: int = 8,
                   threshold: float = 1e-3) -> Set[Tuple[int, int]]:
     """
-    awesome-align implementation using mBERT w/o fine-tuning (https://arxiv.org/abs/2101.08231)
+    awesome-align implementation using mBERT (https://arxiv.org/abs/2101.08231)
     The function is adapted from the demo notebook at https://github.com/neulab/awesome-align
 
     :param src:
@@ -61,8 +62,10 @@ def awesome_align(src: str, tgt: str, tokenizer: PreTrainedTokenizer, model: Pre
     src_word_ids = tokenizer(src_sent, add_special_tokens=False)['input_ids']
     tgt_word_ids = tokenizer(tgt_sent, add_special_tokens=False)['input_ids']
 
-    src_ids = tokenizer.prepare_for_model(list(itertools.chain(*src_word_ids)), return_tensors='pt')['input_ids'].to(device)
-    tgt_ids = tokenizer.prepare_for_model(list(itertools.chain(*tgt_word_ids)), return_tensors='pt')['input_ids'].to(device)
+    src_ids = tokenizer.prepare_for_model(list(itertools.chain(*src_word_ids)), return_tensors='pt')['input_ids'].to(
+        device)
+    tgt_ids = tokenizer.prepare_for_model(list(itertools.chain(*tgt_word_ids)), return_tensors='pt')['input_ids'].to(
+        device)
 
     sub2word_map_src = []
     for i, word_list in enumerate(src_word_ids):
@@ -143,6 +146,51 @@ def create_dataset_with_alignments(dataset: datasets.DatasetDict, word_aligner: 
     return pairs, labels, alignments
 
 
+def _convert_scores_for_alignment(words: List[str], scores: List[float], tokenizer: PreTrainedTokenizer,
+                                  aligner_tokenizer: PreTrainedTokenizer) -> Tuple[List[str], List[float]]:
+    """
+    awesome-align uses a BERT-based tokenizer. When XLM-R is used for getting attribution scores, words may not have
+    one-to-one correspondence between two tokenizers. Alignment mapping is extracted wrt BERT tokenizer, while scores
+    are calculated wrt XLM-R tokenizer. Since BERT tokenizer produces more atomic tokens, words than XLM-R's, we split
+    words using BERT tokenizer and divide scores accordingly to prevent mismatch between provided scores and alignment
+    mapping.
+    """
+
+    if type(tokenizer) in [BertTokenizer, BertTokenizerFast]:
+        return words, scores
+
+    updated_words = []
+    updated_scores = []
+
+    for word, score in zip(words, scores):
+        token_ids = aligner_tokenizer(word, add_special_tokens=False)['input_ids']
+        tokens = aligner_tokenizer.convert_ids_to_tokens(token_ids)
+
+        # BERT tokenizer can see some piece of texts as multiple words which XLM-R tokenizer sees as single word.
+        # this is especially the case when the punctuation is considered. e.g. "flowers," can be a single word for
+        # XLM-R while it's ["flow", "##er", "##s", ","] for BERT tokenizer (2 words, 4 tokens). For each word that
+        # corresponds to multiple words for BERT tokenizer, we divide corresponding scores to the number of words
+        # it corresponds to. For new words just consists of punctuation, we assign zero score.
+        new_words = []
+        new_word = ''
+        for token in tokens:
+            if not token.startswith('##') and new_word:
+                new_words.append(new_word)
+                new_word = token
+            else:
+                new_word += token.replace('##', '')
+
+        new_words.append(new_word)
+
+        n = len(new_words) - len(list(filter(lambda x: x in string.punctuation, new_words)))
+        new_scores = [score / n if word not in string.punctuation else 0.0 for word in new_words]
+
+        updated_words.extend(new_words)
+        updated_scores.extend(new_scores)
+
+    return updated_words, updated_scores
+
+
 def calc_correlations(attribution: NLIAttribution, alignments: List[Set[Tuple[int, int]]], languages: List[str]) -> \
         Tuple[float, Dict[str, float], float, Dict[str, float]]:
     """
@@ -166,13 +214,20 @@ def calc_correlations(attribution: NLIAttribution, alignments: List[Set[Tuple[in
     correlations_per_lang = {lang: [] for lang in languages}
     pvalues_per_lang = {lang: [] for lang in languages}
 
+    aligner_tokenizer = AutoTokenizer.from_pretrained('bert-base-multilingual-cased')
+
     for i, (record, alignment) in enumerate(zip(attribution.records, alignments)):
         # set reference scores to attr scores for English
         if i % num_languages == 0:
             ref_scores = record.word_attributions
+            ref_words = record.raw_input
+            ref_words, ref_scores = _convert_scores_for_alignment(ref_words, ref_scores, attribution.tokenizer,
+                                                                  aligner_tokenizer)
             continue
 
         scores = record.word_attributions
+        words, scores = _convert_scores_for_alignment(record.raw_input, scores, attribution.tokenizer,
+                                                      aligner_tokenizer)
         aligned_scores = [0 for i in range(len(ref_scores))]
 
         # sum the scores of corresponding words in target sequence for each word in source sequence to make two array
@@ -202,7 +257,7 @@ def calc_correlations(attribution: NLIAttribution, alignments: List[Set[Tuple[in
 
 def evaluate(attribution: NLIAttribution, batch_size: int, max_instances: Optional[int] = None,
              word_aligner: Optional[str] = None, selected_languages: Optional[List[str]] = None,
-             dataset_with_alignments: Optional[Tuple]=None,
+             dataset_with_alignments: Optional[Tuple] = None,
              **kwargs) -> Tuple[Tuple[List[Tuple[str, str]], List[int], List[Set[Tuple[int, int]]]], float,
                                 Dict[str, float], float, Dict[str, float]]:
     """
