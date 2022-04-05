@@ -34,14 +34,18 @@ class NLIAttribution(object):
     A common class to apply a wide variety of attribution methods
     """
 
-    def __init__(self, model_name: str, config: AttributionConfig, **kwargs):
+    def __init__(self, model_name: str, config: AttributionConfig, device: Optional[str] = None, **kwargs):
         """
 
         :param model_name: NLI model to load from HuggingFace model hub
         :param config: Config object for common settings
+        :param device:
         :param kwargs: Additional arguments that are specific to attribution method
         """
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            self.device = torch.device(device if device is not None else "cuda:0")
+        else:
+            self.device = torch.device("cpu")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.wrapper = self.ModelWrapper(model_name, config, self.device)
 
