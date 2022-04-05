@@ -293,7 +293,10 @@ def evaluate(attribution: NLIAttribution, batch_size: int, max_instances: Option
         attribution.attr(pairs[i:i + batch_size], labels[i:i + batch_size], **kwargs)
 
     languages = list(dataset['premise'][0].keys())
-    avg_correlation, avg_correlations_per_lang, avg_pval, avg_pvalues_per_lang = calc_correlations(attribution, alignments, languages)
+    languages = list(filter(lambda x: x in selected_languages, languages)) if selected_languages else languages
+    avg_correlation, avg_correlations_per_lang, avg_pval, avg_pvalues_per_lang = calc_correlations(attribution,
+                                                                                                   alignments,
+                                                                                                   languages)
 
     dataset_with_alignments = (pairs, labels, alignments)
 
