@@ -26,13 +26,18 @@ def get_predictions(pairs: List[Tuple[str, str]], model: PreTrainedModel, tokeni
     :return:
     """
     inputs = tokenizer(pairs, return_tensors='pt', padding=True).to(device)
-    input_ids, token_type_ids, attention_mask = inputs.values()
+    input_ids, token_type_ids, attention_mask = inputs['input_ids'], inputs.get('token_type_ids', None), \
+                                                inputs['attention_mask']
 
     preds = []
 
     for i in tqdm(range(0, input_ids.shape[0], batch_size)):
-        output = model(input_ids=input_ids[:batch_size, :], token_type_ids=token_type_ids[:batch_size, :],
+        if token_type_ids is not None:
+            output = model(input_ids=input_ids[:batch_size, :], token_type_ids=token_type_ids[:batch_size, :],
                        attention_mask=attention_mask[:batch_size, :])
+        else:
+            output = model(input_ids=input_ids[:batch_size, :], attention_mask=attention_mask[:batch_size, :])
+
         pred = softmax(output.logits, dim=1)
         preds.append(pred.detach().cpu())
 
@@ -100,14 +105,18 @@ def calculate_comprehensiveness(attribution: NLIAttribution, percentages: List[f
         scores = record.word_attributions[:-1]
         words = record.raw_input[:-1]
 
-        sep_pos = words.index(sep_token)
+        # some tokenizers (e.g xlm-r) can put two consecutive SEP tokens for text pairs unlike the common practice of
+        # using single token. keep track of start and end position of SEP tokens to cover both cases
+        sep_start_pos = words.index(sep_token)
+        sep_end_pos = (sep_start_pos + 1) if words[sep_start_pos + 1] == sep_token else sep_start_pos
+
         # scores range between [0, 1], assign negative value to sep token
         # so that make sep token attribution smallest to prevent it from being erased and
         # to only use it for separating premise and hypothesis
-        scores[sep_pos] = -100
+        scores[sep_start_pos], scores[sep_end_pos] = -100, -100
 
         # insert original input in first place
-        premise, hypothesis = ' '.join(words[:sep_pos]), ' '.join(words[sep_pos + 1:])
+        premise, hypothesis = ' '.join(words[:sep_start_pos]), ' '.join(words[sep_end_pos + 1:])
         pairs_w_perturbations.append((premise, hypothesis))
 
         # get scores and their indices in decreasing order
@@ -130,10 +139,18 @@ def calculate_comprehensiveness(attribution: NLIAttribution, percentages: List[f
             if (i+1) in percent_num_tokens:
                 # create a perturbation by removing all words marked with mask token
                 filtered_words = list(filter(lambda x: x != mask_token, words))
-                sep_pos = filtered_words.index(sep_token)
+
+                sep_start_pos = filtered_words.index(sep_token)
+
+                # find SEP tokens in perturbed instance
+                # check if there is any element remains after first SEP token before checking there are two SEP tokens
+                if (sep_start_pos + 1) < len(filtered_words) and filtered_words[sep_start_pos + 1] == sep_token:
+                    sep_end_pos = sep_start_pos + 1
+                else:
+                    sep_end_pos = sep_start_pos
 
                 # construct pair by splitting from SEP token in the middle
-                premise, hypothesis = ' '.join(filtered_words[:sep_pos]), ' '.join(filtered_words[sep_pos + 1:])
+                premise, hypothesis = ' '.join(filtered_words[:sep_start_pos]), ' '.join(filtered_words[sep_end_pos + 1:])
 
                 # for short sequences some percentages may correspond to same number of tokens (e.g. 5% of 10 words and
                 # 10% of 10 words). when we hit a repeated number, insert the corresponding perturbation as many as
@@ -206,14 +223,18 @@ def calculate_sufficiency(attribution: NLIAttribution, percentages: List[float],
         # do not replace SEP with MASK, it's used for constructing pair
         sufficient_words = [mask_token if word != sep_token else sep_token for word in words]
 
-        sep_pos = words.index(sep_token)
+        # some tokenizers (e.g xlm-r) can put two consecutive SEP tokens for text pairs unlike the common practice of
+        # using single token. keep track of start and end position of SEP tokens to cover both cases
+        sep_start_pos = words.index(sep_token)
+        sep_end_pos = (sep_start_pos + 1) if words[sep_start_pos + 1] == sep_token else sep_start_pos
+
         # scores range between [0, 1], assign negative value to sep token
         # so that make sep token attribution smallest to prevent it from being erased and
         # to only use it for separating premise and hypothesis
-        scores[sep_pos] = -100
+        scores[sep_start_pos], scores[sep_end_pos] = -100, -100
 
         # insert original input
-        premise, hypothesis = ' '.join(words[:sep_pos]), ' '.join(words[sep_pos + 1:])
+        premise, hypothesis = ' '.join(words[:sep_start_pos]), ' '.join(words[sep_end_pos + 1:])
         pairs_w_perturbations.append((premise, hypothesis))
 
         # get scores and their indices in decreasing order
@@ -236,10 +257,18 @@ def calculate_sufficiency(attribution: NLIAttribution, percentages: List[float],
             if (i + 1) in percent_num_tokens:
                 # create a perturbation by removing all words marked with mask token to leave important words only
                 filtered_words = list(filter(lambda x: x != mask_token, sufficient_words))
-                sep_pos = filtered_words.index(sep_token)
+
+                sep_start_pos = filtered_words.index(sep_token)
+
+                # find SEP tokens in perturbed instance
+                # check if there is any element remains after first SEP token before checking there are two SEP tokens
+                if (sep_start_pos + 1) < len(filtered_words) and filtered_words[sep_start_pos + 1] == sep_token:
+                    sep_end_pos = sep_start_pos + 1
+                else:
+                    sep_end_pos = sep_start_pos
 
                 # construct pair by splitting from SEP token in the middle
-                premise, hypothesis = ' '.join(filtered_words[:sep_pos]), ' '.join(filtered_words[sep_pos + 1:])
+                premise, hypothesis = ' '.join(filtered_words[:sep_start_pos]), ' '.join(filtered_words[sep_end_pos + 1:])
 
                 # for short sequences some percentages may correspond to same number of tokens (e.g. 5% of 10 words and
                 # 10% of 10 words). when we hit a repeated number, insert the corresponding perturbation as many as
