@@ -267,8 +267,8 @@ class NLIAttribution(object):
                     feature_mask = torch.range(0, seq_length - 1).unsqueeze(1).repeat(1, 1, 768).long().to(self.device)
                     kwargs['feature_mask'] = feature_mask
 
-                additional_args = (labels[i:i+1], token_type_ids[i, :].unsqueeze(0), None, attn_mask[i, :].unsqueeze(0),
-                                   additional_args[4])
+                additional_args = (labels[i:i+1], token_type_ids[i, :].unsqueeze(0) if token_type_ids is not None else None,
+                                   None, attn_mask[i, :].unsqueeze(0), additional_args[4])
                 single_attr = self.attr_method.attribute(inputs[i, :].unsqueeze(0), additional_forward_args=additional_args, **kwargs).squeeze(0)
                 attributions_list.append(single_attr)
             attributions = torch.stack(attributions_list)
