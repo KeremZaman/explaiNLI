@@ -105,6 +105,11 @@ def calculate_comprehensiveness(attribution: NLIAttribution, percentages: List[f
         scores = record.word_attributions[:-1]
         words = record.raw_input[:-1]
 
+        # sometimes attribution scores may contain nan values, which makes impossible to sort values
+        # ignore instances when this rare event happens (it occurs when LIME is used with XLM-R)
+        if np.isnan(scores).any():
+            continue
+
         # some tokenizers (e.g xlm-r) can put two consecutive SEP tokens for text pairs unlike the common practice of
         # using single token. keep track of start and end position of SEP tokens to cover both cases
         sep_start_pos = words.index(sep_token)
@@ -213,6 +218,11 @@ def calculate_sufficiency(attribution: NLIAttribution, percentages: List[float],
         # exclude end of sentence SEP token and corresponding attribution scores
         scores = record.word_attributions[:-1]
         words = record.raw_input[:-1]
+
+        # sometimes attribution scores may contain nan values, which makes impossible to sort values
+        # ignore instances when this rare event happens (it occurs when LIME is used with XLM-R)
+        if np.isnan(scores).any():
+            continue
 
         # for sufficiency, inputs consists of most important words which is more like addition than deletion
         # adding most important tokens one by one will lose the original order of the words
