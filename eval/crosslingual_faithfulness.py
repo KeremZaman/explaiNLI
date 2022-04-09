@@ -4,6 +4,8 @@ from transformers import PreTrainedTokenizer, PreTrainedModel, AutoTokenizer, Au
 from datasets import load_dataset
 import datasets
 
+from simalign import SentenceAligner
+
 import torch
 import numpy as np
 from scipy.stats import spearmanr
@@ -94,6 +96,30 @@ def awesome_align(src: str, tgt: str, tokenizer: PreTrainedTokenizer, model: Pre
     return align_words
 
 
+def random_itermax(src: str, tgt: str, tokenizer: PreTrainedTokenizer) -> Set[Tuple[int, int]]:
+    """
+    IterMax using random similarity matrix for testing effect of word alignment
+    More details about IterMax can be found in SimAlign paper (https://arxiv.org/pdf/2004.08728.pdf)
+
+    :param src
+    :param tgt
+    :param tokenizer
+    :return:
+    """
+    src_sent, tgt_sent = _word_tokenize(src, tokenizer), _word_tokenize(tgt, tokenizer)
+    random_sim_matrix = torch.rand(len(src_sent), len(tgt_sent))
+
+    mat = SentenceAligner.iter_max(random_sim_matrix)
+    alignment = set()
+
+    for i in range(len(src_sent)):
+        for j in range(len(tgt_sent)):
+            if mat[i, j] > 0:
+                alignment.add((i, j))
+
+    return alignment
+
+
 def create_dataset_with_alignments(dataset: datasets.DatasetDict, word_aligner: Optional[str] = None,
                                    selected_languages: Optional[List[str]] = None) -> \
         Tuple[List[Tuple[str, str]], List[int], List[Set[Tuple[int, int]]]]:
@@ -110,7 +136,7 @@ def create_dataset_with_alignments(dataset: datasets.DatasetDict, word_aligner: 
     idx_en = dataset['hypothesis'][0]['language'].index('en')
 
     # set model and tokenizer for word alignment
-    multilingual_model_name = 'bert-base-multilingual-cased' if word_aligner is None else word_aligner
+    multilingual_model_name = 'bert-base-multilingual-cased' if word_aligner in [None, 'random_itermax'] else word_aligner
     tokenizer = AutoTokenizer.from_pretrained(multilingual_model_name)
     model = AutoModel.from_pretrained(multilingual_model_name)
 
@@ -140,7 +166,11 @@ def create_dataset_with_alignments(dataset: datasets.DatasetDict, word_aligner: 
             # combine premise and hypothesis for word alignment
             src_combined = f"{en_premise} {en_hypothesis}"
             tgt_combined = f"{premise[lang]} {hypothesis['translation'][i]}"
-            alignment = awesome_align(src_combined, tgt_combined, tokenizer, model)
+
+            if word_aligner == 'random_itermax':
+                alignment = random_itermax(src_combined, tgt_combined, tokenizer)
+            else:
+                alignment = awesome_align(src_combined, tgt_combined, tokenizer, model)
             alignments.append(alignment)
 
     return pairs, labels, alignments
