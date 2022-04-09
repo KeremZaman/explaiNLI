@@ -6,3 +6,4 @@ tqdm
 scipy
 pandas
 numpy
+simalign
