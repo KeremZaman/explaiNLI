@@ -1,6 +1,6 @@
 transformers
 datasets
-captum
+captum==0.4.1
 scikit-learn
 tqdm
 scipy
