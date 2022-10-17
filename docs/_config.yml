@@ -1,0 +1,5 @@
+remote_theme: just-the-docs/just-the-docs
+plugins:
+- jekyll-remote-theme # add this line to the plugins list if you already have one
+title: explaiNLI
+description: A Multilingual Perspective Towards the Evaluation of Attribution Methods in Natural Language Inference
