@@ -1,4 +1,6 @@
-# Attribution Calculation through API
+# API
+
+## Attribution Calculation through API
 
 ```python
 
@@ -18,7 +20,7 @@ Supported attribution methods are `InputXGradient`, `Saliency`, `Guided`
 
 Supported aggregation methods are `L2` and `MEAN` and supported output methods are `TOP_PREDIICTION` and `LOSS`.
 
-# Visualize
+## Visualize
 
 After obtaining attribution scores, visualize the given number 
 of instances starting from a particular instance as following:
@@ -30,7 +32,7 @@ attribution.visualize(start=5, num=50)
 This example visualizes attribution maps of 50 instances starting from 6th instance.
 Starting instance and number of instances to visualize are optional parameters.
 
-# Load/Save
+## Load/Save
 
 For saving calculated attributions, use
 

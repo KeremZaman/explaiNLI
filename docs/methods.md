@@ -1,6 +1,8 @@
-# Faithfulness
+# Methods
 
-## Erasure-based Faithfulness
+## Faithfulness
+
+### Erasure-based Faithfulness
 
 ![](images/eraser.gif)
 
@@ -11,7 +13,7 @@ important tokens are removed from the input.
 
 Note a higher score is better for comprehensiveness.
 
-### Sufficiency
+#### Sufficiency
 
 Sufficiency measures how sufficient are the important words to 
 retain the same decision of the classifier by measuring the drop in 
@@ -19,7 +21,7 @@ the output when only top-k tokens are kept.
 
 Note that a lower score is better for sufficiency.
 
-## Cross-lingual Faithfulness
+### Cross-lingual Faithfulness
 
 Erasure-based methods come with a drawback. 
 What does the model *think* when important words are deleted from input? 
