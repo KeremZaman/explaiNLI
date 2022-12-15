@@ -1,6 +1,6 @@
-# Attribution Methods
+# Background
 
-# Attribution Methods
+## Attribution Methods
 
 One way to interpret black-box neural models is to use attribution methods.
 
@@ -30,14 +30,14 @@ The following figure shows the methods we covered in this study.
 ![](images/attribution_methods.png)
 
 
-# Evaluating Attribution Methods
+## Evaluating Attribution Methods
 
-## Plausibility
+### Plausibility
 
 Plausibility is the measure of how much explanations align with 
 human reasoning.
 
-## Faithfulness
+### Faithfulness
 
 Faithfulness is a measure of how much the explanation overlaps 
 with the model’s inner reasoning mechanism. 
